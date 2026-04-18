@@ -1,5 +1,4 @@
 use std::fs;
-use std::os::unix::fs::{MetadataExt, PermissionsExt};
 use std::path::Path;
 use tokio::io::{AsyncRead, AsyncWrite};
 
@@ -34,20 +33,35 @@ fn metadata_to_entry(path: &Path, meta: &fs::Metadata) -> VfsEntry {
         .map(|n| n.to_string_lossy().to_string())
         .unwrap_or_else(|| path.display().to_string());
 
+    #[cfg(unix)]
+    let (permissions, owner, group) = {
+        use std::os::unix::fs::{MetadataExt, PermissionsExt};
+        (
+            Some(meta.permissions().mode()),
+            Some(meta.uid().to_string()),
+            Some(meta.gid().to_string()),
+        )
+    };
+
+    #[cfg(not(unix))]
+    let (permissions, owner, group) = (None, None, None);
+
+    let link_target = if meta.is_symlink() {
+        fs::read_link(path).ok().map(VfsPath::local)
+    } else {
+        None
+    };
+
     VfsEntry {
         name,
         path: VfsPath::local(path),
         entry_type,
         size: meta.len(),
         modified: meta.modified().ok(),
-        permissions: Some(meta.permissions().mode()),
-        owner: Some(meta.uid().to_string()),
-        group: Some(meta.gid().to_string()),
-        link_target: if meta.is_symlink() {
-            fs::read_link(path).ok().map(VfsPath::local)
-        } else {
-            None
-        },
+        permissions,
+        owner,
+        group,
+        link_target,
     }
 }
 
@@ -134,13 +148,22 @@ impl VfsProvider for LocalVfsProvider {
     }
 
     async fn set_permissions(&self, path: &VfsPath, mode: u32) -> Result<(), VfsError> {
-        let local = Self::to_local_path(path)?.to_path_buf();
-        tokio::task::spawn_blocking(move || {
-            let perms = fs::Permissions::from_mode(mode);
-            fs::set_permissions(&local, perms)?;
-            Ok(())
-        })
-        .await
-        .map_err(|e| VfsError::Other(e.to_string()))?
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let local = Self::to_local_path(path)?.to_path_buf();
+            tokio::task::spawn_blocking(move || {
+                let perms = fs::Permissions::from_mode(mode);
+                fs::set_permissions(&local, perms)?;
+                Ok(())
+            })
+            .await
+            .map_err(|e| VfsError::Other(e.to_string()))?
+        }
+        #[cfg(not(unix))]
+        {
+            let _ = (path, mode);
+            Err(VfsError::Unsupported)
+        }
     }
 }
