@@ -10,19 +10,19 @@ permissions:
   contents: read
   pull-requests: read
   actions: read
+  issues: read
 
 tools:
   github:
     toolsets: [default]
-  bash: "*"
+  bash: true
 
 network:
   allowed:
     - defaults
 
 safe-outputs:
-  dispatch-workflow:
-    max: 1
+  dispatch-workflow: [release]
   add-comment:
     max: 1
   noop:
