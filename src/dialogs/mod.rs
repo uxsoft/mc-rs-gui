@@ -82,19 +82,28 @@ fn dialog_button<'a>(label: &str, msg: Message, primary: bool) -> Element<'a, Me
             .color(Color::from_rgb(0.9, 0.9, 0.95)),
     )
     .padding(Padding::from([6, 16]))
-    .style(move |_theme, _status| button::Style {
-        background: Some(iced::Background::Color(bg)),
-        text_color: Color::WHITE,
-        border: iced::Border {
-            color: if primary {
-                Color::from_rgb(0.3, 0.45, 0.8)
-            } else {
-                Color::from_rgb(0.3, 0.3, 0.35)
+    .style(move |_theme, status| {
+        let background = match status {
+            button::Status::Pressed if primary => Color::from_rgb(0.15, 0.25, 0.55),
+            button::Status::Hovered if primary => Color::from_rgb(0.24, 0.4, 0.8),
+            button::Status::Pressed => Color::from_rgb(0.25, 0.25, 0.32),
+            button::Status::Hovered => Color::from_rgb(0.24, 0.24, 0.3),
+            _ => bg,
+        };
+        button::Style {
+            background: Some(iced::Background::Color(background)),
+            text_color: Color::WHITE,
+            border: iced::Border {
+                color: if primary {
+                    Color::from_rgb(0.3, 0.45, 0.8)
+                } else {
+                    Color::from_rgb(0.3, 0.3, 0.35)
+                },
+                width: 1.0,
+                radius: 4.0.into(),
             },
-            width: 1.0,
-            radius: 4.0.into(),
-        },
-        ..Default::default()
+            ..Default::default()
+        }
     })
     .on_press(msg)
     .into()

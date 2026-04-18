@@ -66,12 +66,19 @@ fn menu_header_button<'a>(
     )
     .padding(Padding::from([3, 10]))
     .width(Length::Fixed(HEADER_WIDTH))
-    .style(move |_theme, _status| button::Style {
-        background: Some(iced::Background::Color(bg)),
-        text_color: Color::WHITE,
-        border: iced::Border::default(),
-        shadow: iced::Shadow::default(),
-        ..Default::default()
+    .style(move |_theme, status| {
+        let background = match status {
+            button::Status::Pressed => Color::from_rgb(0.15, 0.25, 0.55),
+            button::Status::Hovered => Color::from_rgb(0.18, 0.3, 0.6),
+            _ => bg,
+        };
+        button::Style {
+            background: Some(iced::Background::Color(background)),
+            text_color: Color::WHITE,
+            border: iced::Border::default(),
+            shadow: iced::Shadow::default(),
+            ..Default::default()
+        }
     })
     .on_press(Message::MenuOpen(id))
     .into()
@@ -133,6 +140,7 @@ fn menu_item_button(label: String, shortcut: &str, message: Message) -> Element<
         .width(Length::Fill)
         .style(|_theme, status| {
             let bg = match status {
+                button::Status::Pressed => Color::from_rgb(0.25, 0.3, 0.5),
                 button::Status::Hovered => Color::from_rgb(0.2, 0.25, 0.4),
                 _ => Color::TRANSPARENT,
             };
