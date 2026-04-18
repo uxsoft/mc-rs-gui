@@ -2,6 +2,11 @@ name: Release
 
 on:
   workflow_dispatch:
+    inputs:
+      release_body:
+        description: "Release notes body (markdown). If empty, auto-generated from commits."
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -34,7 +39,19 @@ jobs:
         id: changelog
         env:
           GH_TOKEN: ${{ github.token }}
+          INPUT_BODY: ${{ inputs.release_body }}
         run: |
+          # Use provided release body if available
+          if [ -n "$INPUT_BODY" ]; then
+            {
+              echo "changelog<<CHANGELOG_EOF"
+              echo "$INPUT_BODY"
+              echo "CHANGELOG_EOF"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Otherwise auto-generate from git history
           # Find the previous release tag, if any
           PREV_TAG=$(git tag --sort=-v:refname | head -n1 || true)
 
