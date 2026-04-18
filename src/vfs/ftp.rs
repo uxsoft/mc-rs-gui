@@ -64,7 +64,9 @@ impl VfsProvider for FtpVfsProvider {
 
         tokio::task::spawn_blocking(move || {
             let mut guard = stream.blocking_lock();
-            let ftp = guard.as_mut().ok_or(VfsError::Connection("Not connected".into()))?;
+            let ftp = guard
+                .as_mut()
+                .ok_or(VfsError::Connection("Not connected".into()))?;
 
             let list = ftp
                 .list(Some(&dir_path))
@@ -106,7 +108,9 @@ impl VfsProvider for FtpVfsProvider {
 
         let data = tokio::task::spawn_blocking(move || {
             let mut guard = stream.blocking_lock();
-            let ftp = guard.as_mut().ok_or(VfsError::Connection("Not connected".into()))?;
+            let ftp = guard
+                .as_mut()
+                .ok_or(VfsError::Connection("Not connected".into()))?;
             let cursor = ftp
                 .retr_as_buffer(&file_path)
                 .map_err(|e| VfsError::Other(format!("FTP retr failed: {e}")))?;
@@ -130,7 +134,9 @@ impl VfsProvider for FtpVfsProvider {
         let dir_path = path.path.to_string_lossy().to_string();
         tokio::task::spawn_blocking(move || {
             let mut guard = stream.blocking_lock();
-            let ftp = guard.as_mut().ok_or(VfsError::Connection("Not connected".into()))?;
+            let ftp = guard
+                .as_mut()
+                .ok_or(VfsError::Connection("Not connected".into()))?;
             ftp.mkdir(&dir_path)
                 .map_err(|e| VfsError::Other(format!("FTP mkdir failed: {e}")))?;
             Ok(())
@@ -144,7 +150,9 @@ impl VfsProvider for FtpVfsProvider {
         let file_path = path.path.to_string_lossy().to_string();
         tokio::task::spawn_blocking(move || {
             let mut guard = stream.blocking_lock();
-            let ftp = guard.as_mut().ok_or(VfsError::Connection("Not connected".into()))?;
+            let ftp = guard
+                .as_mut()
+                .ok_or(VfsError::Connection("Not connected".into()))?;
             ftp.rm(&file_path)
                 .map_err(|e| VfsError::Other(format!("FTP rm failed: {e}")))?;
             Ok(())
@@ -158,7 +166,9 @@ impl VfsProvider for FtpVfsProvider {
         let dir_path = path.path.to_string_lossy().to_string();
         tokio::task::spawn_blocking(move || {
             let mut guard = stream.blocking_lock();
-            let ftp = guard.as_mut().ok_or(VfsError::Connection("Not connected".into()))?;
+            let ftp = guard
+                .as_mut()
+                .ok_or(VfsError::Connection("Not connected".into()))?;
             ftp.rmdir(&dir_path)
                 .map_err(|e| VfsError::Other(format!("FTP rmdir failed: {e}")))?;
             Ok(())
@@ -173,7 +183,9 @@ impl VfsProvider for FtpVfsProvider {
         let to_path = to.path.to_string_lossy().to_string();
         tokio::task::spawn_blocking(move || {
             let mut guard = stream.blocking_lock();
-            let ftp = guard.as_mut().ok_or(VfsError::Connection("Not connected".into()))?;
+            let ftp = guard
+                .as_mut()
+                .ok_or(VfsError::Connection("Not connected".into()))?;
             ftp.rename(&from_path, &to_path)
                 .map_err(|e| VfsError::Other(format!("FTP rename failed: {e}")))?;
             Ok(())

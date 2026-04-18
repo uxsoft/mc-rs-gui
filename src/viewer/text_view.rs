@@ -1,4 +1,4 @@
-use iced::widget::{column, container, scrollable, text, Column};
+use iced::widget::{Column, column, container, scrollable, text};
 use iced::{Color, Element, Font, Length, Padding};
 
 use crate::app::Message;
@@ -9,8 +9,7 @@ pub fn text_content_view<'a>(state: &'a ViewerState) -> Element<'a, Message> {
     let text_content = String::from_utf8_lossy(&state.content);
     let lines: Vec<&str> = text_content.lines().collect();
 
-    let visible_lines = &lines
-        [state.offset..lines.len().min(state.offset + state.lines_per_page)];
+    let visible_lines = &lines[state.offset..lines.len().min(state.offset + state.lines_per_page)];
 
     let mut rows: Vec<Element<'a, Message>> = Vec::with_capacity(visible_lines.len());
 

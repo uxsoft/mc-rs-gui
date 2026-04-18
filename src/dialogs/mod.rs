@@ -2,7 +2,7 @@ pub mod confirm;
 pub mod input;
 pub mod progress;
 
-use iced::widget::{button, column, container, row, text, Space};
+use iced::widget::{Space, button, column, container, row, text};
 use iced::{Alignment, Color, Element, Font, Length, Padding};
 
 use crate::app::Message;
@@ -54,7 +54,9 @@ pub fn dialog_overlay<'a>(dialog: &'a DialogKind) -> Element<'a, Message> {
     .center_x(Length::Fill)
     .center_y(Length::Fill)
     .style(|_theme| container::Style {
-        background: Some(iced::Background::Color(Color::from_rgba(0.0, 0.0, 0.0, 0.6))),
+        background: Some(iced::Background::Color(Color::from_rgba(
+            0.0, 0.0, 0.0, 0.6,
+        ))),
         ..Default::default()
     })
     .into()

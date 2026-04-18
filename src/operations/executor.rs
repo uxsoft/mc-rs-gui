@@ -23,9 +23,7 @@ pub async fn execute_operation(
             destination,
         } => move_files(vfs, sources, destination, progress_tx).await,
         OperationKind::Delete { targets } => delete_files(vfs, targets, progress_tx).await,
-        OperationKind::Mkdir { path } => {
-            vfs.create_dir(&path).await.map_err(|e| e.to_string())
-        }
+        OperationKind::Mkdir { path } => vfs.create_dir(&path).await.map_err(|e| e.to_string()),
     }
 }
 
@@ -100,20 +98,20 @@ fn collect_files<'a>(
     total_bytes: &'a mut u64,
 ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send + 'a>> {
     Box::pin(async move {
-    let entry = vfs.stat(source).await.map_err(|e| e.to_string())?;
-    let dest_path = dest_dir.join(&entry.name);
+        let entry = vfs.stat(source).await.map_err(|e| e.to_string())?;
+        let dest_path = dest_dir.join(&entry.name);
 
-    if entry.is_dir() {
-        file_list.push((source.clone(), dest_path.clone()));
-        let children = vfs.read_dir(source).await.map_err(|e| e.to_string())?;
-        for child in &children {
-            collect_files(vfs, &child.path, &dest_path, file_list, total_bytes).await?;
+        if entry.is_dir() {
+            file_list.push((source.clone(), dest_path.clone()));
+            let children = vfs.read_dir(source).await.map_err(|e| e.to_string())?;
+            for child in &children {
+                collect_files(vfs, &child.path, &dest_path, file_list, total_bytes).await?;
+            }
+        } else {
+            *total_bytes += entry.size;
+            file_list.push((source.clone(), dest_path));
         }
-    } else {
-        *total_bytes += entry.size;
-        file_list.push((source.clone(), dest_path));
-    }
-    Ok(())
+        Ok(())
     })
 }
 
@@ -169,9 +167,7 @@ async fn delete_files(
 async fn delete_single(vfs: &VfsRouter, path: &VfsPath) -> Result<(), String> {
     let entry = vfs.stat(path).await.map_err(|e| e.to_string())?;
     if entry.is_dir() {
-        vfs.remove_dir(path, true)
-            .await
-            .map_err(|e| e.to_string())
+        vfs.remove_dir(path, true).await.map_err(|e| e.to_string())
     } else {
         vfs.remove_file(path).await.map_err(|e| e.to_string())
     }

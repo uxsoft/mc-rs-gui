@@ -3,7 +3,7 @@ pub mod sort;
 use std::collections::BTreeSet;
 
 use iced::widget::{
-    button, column, container, horizontal_rule, row, scrollable, text, Column, Space,
+    Column, Space, button, column, container, horizontal_rule, row, scrollable, text,
 };
 use iced::{Color, Element, Font, Length, Padding};
 
@@ -162,17 +162,25 @@ pub fn panel_view<'a>(
 
     // File list
     let file_rows: Vec<Element<'a, Message>> = if state.loading {
-        vec![container(text("Loading...").size(13).color(Color::from_rgb(0.5, 0.5, 0.55)))
+        vec![
+            container(
+                text("Loading...")
+                    .size(13)
+                    .color(Color::from_rgb(0.5, 0.5, 0.55)),
+            )
             .padding(8)
-            .into()]
+            .into(),
+        ]
     } else if let Some(ref err) = state.error {
-        vec![container(
-            text(format!("Error: {err}"))
-                .size(13)
-                .color(Color::from_rgb(0.9, 0.3, 0.3)),
-        )
-        .padding(8)
-        .into()]
+        vec![
+            container(
+                text(format!("Error: {err}"))
+                    .size(13)
+                    .color(Color::from_rgb(0.9, 0.3, 0.3)),
+            )
+            .padding(8)
+            .into(),
+        ]
     } else {
         // ".." entry to go up
         let mut rows: Vec<Element<'a, Message>> = Vec::with_capacity(state.entries.len() + 1);
@@ -294,10 +302,7 @@ pub fn panel_view<'a>(
         .sum();
 
     let status_text = if state.selected.is_empty() {
-        format!(
-            "{} items",
-            state.entries.len()
-        )
+        format!("{} items", state.entries.len())
     } else {
         format!(
             "{} selected ({})",
@@ -316,7 +321,13 @@ pub fn panel_view<'a>(
     .padding(Padding::from([2, 8]));
 
     // Assemble panel
-    let panel_content = column![path_bar, horizontal_rule(1), header_row, file_list, status_bar,];
+    let panel_content = column![
+        path_bar,
+        horizontal_rule(1),
+        header_row,
+        file_list,
+        status_bar,
+    ];
 
     container(panel_content)
         .width(Length::Fill)

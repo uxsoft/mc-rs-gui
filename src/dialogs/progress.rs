@@ -1,4 +1,4 @@
-use iced::widget::{column, progress_bar, text, Space};
+use iced::widget::{Space, column, progress_bar, text};
 use iced::{Color, Element, Font, Length};
 
 use crate::app::Message;
