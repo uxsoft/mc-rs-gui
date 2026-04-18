@@ -62,10 +62,14 @@ pub fn chmod_view<'a>(dialog: &'a ChmodDialog) -> Element<'a, Message> {
         .font(Font::with_name("Caskaydia Mono Nerd Font"))
         .color(Color::from_rgb(0.7, 0.7, 0.75));
 
-    let mode_display = text(format!("{} ({:04o})", mode_string(dialog.mode), dialog.mode & 0o7777))
-        .size(14)
-        .font(Font::with_name("Caskaydia Mono Nerd Font"))
-        .color(Color::from_rgb(0.6, 0.8, 1.0));
+    let mode_display = text(format!(
+        "{} ({:04o})",
+        mode_string(dialog.mode),
+        dialog.mode & 0o7777
+    ))
+    .size(14)
+    .font(Font::with_name("Caskaydia Mono Nerd Font"))
+    .color(Color::from_rgb(0.6, 0.8, 1.0));
 
     // Permission checkboxes in 3 rows of 3
     let mut perm_rows: Vec<Element<'a, Message>> = Vec::new();
@@ -102,7 +106,8 @@ pub fn chmod_view<'a>(dialog: &'a ChmodDialog) -> Element<'a, Message> {
         .font(Font::with_name("Caskaydia Mono Nerd Font"))
         .width(Length::Fixed(80.0));
 
-    let octal_row = row![octal_label, Space::new().width(8), octal].align_y(iced::Alignment::Center);
+    let octal_row =
+        row![octal_label, Space::new().width(8), octal].align_y(iced::Alignment::Center);
 
     let buttons = row![
         dialog_button(

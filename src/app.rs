@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use iced::keyboard;
-use iced::widget::{column, container, row, stack, text_input, operation};
+use iced::widget::{column, container, operation, row, stack, text_input};
 use iced::{Color, Element, Length, Subscription, Task};
 use tokio::io::AsyncReadExt;
 use tokio::io::AsyncWriteExt;
@@ -227,13 +227,11 @@ impl App {
                             return Task::none();
                         }
                         keyboard::Key::Named(keyboard::key::Named::ArrowLeft) => {
-                            self.menu_bar.open_menu =
-                                Some(self.menu_bar.open_menu.unwrap().prev());
+                            self.menu_bar.open_menu = Some(self.menu_bar.open_menu.unwrap().prev());
                             return Task::none();
                         }
                         keyboard::Key::Named(keyboard::key::Named::ArrowRight) => {
-                            self.menu_bar.open_menu =
-                                Some(self.menu_bar.open_menu.unwrap().next());
+                            self.menu_bar.open_menu = Some(self.menu_bar.open_menu.unwrap().next());
                             return Task::none();
                         }
                         _ => {
@@ -473,16 +471,14 @@ impl App {
     }
 
     pub fn subscription(&self) -> Subscription<Message> {
-        keyboard::listen().map(|event| {
-            match event {
-                keyboard::Event::KeyPressed { key, modifiers, .. } => {
-                    Message::KeyPressed(key, modifiers)
-                }
-                _ => Message::KeyPressed(
-                    keyboard::Key::Named(keyboard::key::Named::Alt),
-                    keyboard::Modifiers::empty(),
-                ),
+        keyboard::listen().map(|event| match event {
+            keyboard::Event::KeyPressed { key, modifiers, .. } => {
+                Message::KeyPressed(key, modifiers)
             }
+            _ => Message::KeyPressed(
+                keyboard::Key::Named(keyboard::key::Named::Alt),
+                keyboard::Modifiers::empty(),
+            ),
         })
     }
 
@@ -1166,7 +1162,9 @@ impl App {
             }
             PanelMessage::GoUp => {
                 let panel = self.panel_mut(side);
-                let target = panel.current_path.parent()
+                let target = panel
+                    .current_path
+                    .parent()
                     .or_else(|| panel.current_path.exit_parent());
                 if let Some(parent) = target {
                     return self.navigate_to(side, parent);

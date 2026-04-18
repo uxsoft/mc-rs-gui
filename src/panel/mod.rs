@@ -2,9 +2,7 @@ pub mod sort;
 
 use std::collections::{BTreeSet, HashSet};
 
-use iced::widget::{
-    Column, button, column, container, row, rule, scrollable, text,
-};
+use iced::widget::{Column, button, column, container, row, rule, scrollable, text};
 use iced::{Color, Element, Font, Length, Padding};
 
 use crate::app::{Message, PanelSide};
@@ -72,7 +70,9 @@ impl PanelState {
 
         // Insert ".." entry at the top if we can navigate up
         // For VFS roots (zip/tar/ftp/sftp), exit to the parent filesystem
-        let parent_path = self.current_path.parent()
+        let parent_path = self
+            .current_path
+            .parent()
             .or_else(|| self.current_path.exit_parent());
         if let Some(parent) = parent_path {
             entries.insert(

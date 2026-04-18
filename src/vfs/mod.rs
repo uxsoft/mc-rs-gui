@@ -49,9 +49,9 @@ impl VfsPath {
                     p.parent().map(|dir| VfsPath::local(dir))
                 })
             }
-            "ftp" | "sftp" => {
-                Some(VfsPath::local(dirs::home_dir().unwrap_or_else(|| PathBuf::from("/"))))
-            }
+            "ftp" | "sftp" => Some(VfsPath::local(
+                dirs::home_dir().unwrap_or_else(|| PathBuf::from("/")),
+            )),
             _ => None,
         }
     }

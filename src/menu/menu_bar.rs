@@ -1,10 +1,10 @@
-use iced::widget::{button, column, container, row, text, Space};
+use iced::widget::{Space, button, column, container, row, text};
 use iced::{Color, Element, Font, Length, Padding};
 
 use crate::app::{Message, PanelSide};
 use crate::config::AppConfig;
-use crate::panel::sort::SortMode;
 use crate::panel::PanelMessage;
+use crate::panel::sort::SortMode;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MenuId {
@@ -47,11 +47,7 @@ pub struct MenuBarState {
 const MENU_FONT_SIZE: f32 = 13.0;
 const HEADER_WIDTH: f32 = 100.0;
 
-fn menu_header_button<'a>(
-    label: &'a str,
-    id: MenuId,
-    is_open: bool,
-) -> Element<'a, Message> {
+fn menu_header_button<'a>(label: &'a str, id: MenuId, is_open: bool) -> Element<'a, Message> {
     let bg = if is_open {
         Color::from_rgb(0.2, 0.35, 0.7)
     } else {
@@ -186,20 +182,18 @@ fn render_menu_items<'a>(items: Vec<MenuItem>) -> Element<'a, Message> {
         });
     }
 
-    container(
-        column(children).width(Length::Fixed(240.0)),
-    )
-    .style(|_theme| container::Style {
-        background: Some(iced::Background::Color(Color::from_rgb(0.12, 0.12, 0.16))),
-        border: iced::Border {
-            color: Color::from_rgb(0.25, 0.25, 0.3),
-            width: 1.0,
-            radius: 4.0.into(),
-        },
-        ..Default::default()
-    })
-    .padding(Padding::from([4, 0]))
-    .into()
+    container(column(children).width(Length::Fixed(240.0)))
+        .style(|_theme| container::Style {
+            background: Some(iced::Background::Color(Color::from_rgb(0.12, 0.12, 0.16))),
+            border: iced::Border {
+                color: Color::from_rgb(0.25, 0.25, 0.3),
+                width: 1.0,
+                radius: 4.0.into(),
+            },
+            ..Default::default()
+        })
+        .padding(Padding::from([4, 0]))
+        .into()
 }
 
 fn panel_menu_items(side: PanelSide) -> Vec<MenuItem> {
