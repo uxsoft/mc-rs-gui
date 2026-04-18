@@ -74,14 +74,15 @@ pub fn chmod_view<'a>(dialog: &'a ChmodDialog) -> Element<'a, Message> {
         for &(bit, label) in chunk {
             let checked = dialog.mode & bit != 0;
             row_items.push(
-                checkbox(label, checked)
+                checkbox(checked)
+                    .label(label)
                     .on_toggle(move |_| Message::DialogResult(DialogMessage::ChmodToggleBit(bit)))
                     .text_size(12)
                     .size(16)
                     .font(Font::with_name("Caskaydia Mono Nerd Font"))
                     .into(),
             );
-            row_items.push(Space::with_width(Length::Fixed(12.0)).into());
+            row_items.push(Space::new().width(Length::Fixed(12.0)).into());
         }
         perm_rows.push(
             iced::widget::Row::with_children(row_items)
@@ -101,7 +102,7 @@ pub fn chmod_view<'a>(dialog: &'a ChmodDialog) -> Element<'a, Message> {
         .font(Font::with_name("Caskaydia Mono Nerd Font"))
         .width(Length::Fixed(80.0));
 
-    let octal_row = row![octal_label, Space::with_width(8), octal].align_y(iced::Alignment::Center);
+    let octal_row = row![octal_label, Space::new().width(8), octal].align_y(iced::Alignment::Center);
 
     let buttons = row![
         dialog_button(
@@ -109,7 +110,7 @@ pub fn chmod_view<'a>(dialog: &'a ChmodDialog) -> Element<'a, Message> {
             Message::DialogResult(DialogMessage::ChmodApply),
             true
         ),
-        Space::with_width(8),
+        Space::new().width(8),
         dialog_button(
             "Cancel",
             Message::DialogResult(DialogMessage::Cancel),
@@ -119,22 +120,22 @@ pub fn chmod_view<'a>(dialog: &'a ChmodDialog) -> Element<'a, Message> {
 
     let mut content = column![
         title,
-        Space::with_height(8),
+        Space::new().height(8),
         file_label,
-        Space::with_height(4),
+        Space::new().height(4),
         mode_display,
-        Space::with_height(12),
+        Space::new().height(12),
     ]
     .spacing(0);
 
     for r in perm_rows {
         content = content.push(r);
-        content = content.push(Space::with_height(Length::Fixed(4.0)));
+        content = content.push(Space::new().height(Length::Fixed(4.0)));
     }
 
-    content = content.push(Space::with_height(8));
+    content = content.push(Space::new().height(8));
     content = content.push(octal_row);
-    content = content.push(Space::with_height(16));
+    content = content.push(Space::new().height(16));
     content = content.push(buttons);
 
     content.into()

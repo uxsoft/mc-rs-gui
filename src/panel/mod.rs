@@ -3,7 +3,7 @@ pub mod sort;
 use std::collections::{BTreeSet, HashSet};
 
 use iced::widget::{
-    Column, button, column, container, horizontal_rule, row, scrollable, text,
+    Column, button, column, container, row, rule, scrollable, text,
 };
 use iced::{Color, Element, Font, Length, Padding};
 
@@ -282,6 +282,7 @@ pub fn panel_view<'a>(
                 text_color: Color::WHITE,
                 border: iced::Border::default(),
                 shadow: iced::Shadow::default(),
+                ..Default::default()
             })
             .on_press(Message::Panel(side, PanelMessage::Select(i)));
 
@@ -327,7 +328,7 @@ pub fn panel_view<'a>(
     // Assemble panel
     let panel_content = column![
         path_bar,
-        horizontal_rule(1),
+        rule::horizontal(1),
         header_row,
         file_list,
         status_bar,

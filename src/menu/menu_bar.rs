@@ -71,6 +71,7 @@ fn menu_header_button<'a>(
         text_color: Color::WHITE,
         border: iced::Border::default(),
         shadow: iced::Shadow::default(),
+        ..Default::default()
     })
     .on_press(Message::MenuOpen(id))
     .into()
@@ -83,7 +84,7 @@ pub fn menu_bar_view(state: &MenuBarState) -> Element<'_, Message> {
         menu_header_button("File", MenuId::File, open == Some(MenuId::File)),
         menu_header_button("Command", MenuId::Command, open == Some(MenuId::Command)),
         menu_header_button("Options", MenuId::Options, open == Some(MenuId::Options)),
-        Space::with_width(Length::Fill),
+        Space::new().width(Length::Fill),
         menu_header_button("Right", MenuId::Right, open == Some(MenuId::Right)),
     ];
 
@@ -140,6 +141,7 @@ fn menu_item_button(label: String, shortcut: &str, message: Message) -> Element<
                 text_color: Color::WHITE,
                 border: iced::Border::default(),
                 shadow: iced::Shadow::default(),
+                ..Default::default()
             }
         })
         .on_press(Message::MenuAction(Box::new(message)))
@@ -147,7 +149,7 @@ fn menu_item_button(label: String, shortcut: &str, message: Message) -> Element<
 }
 
 fn menu_separator<'a>() -> Element<'a, Message> {
-    container(iced::widget::horizontal_rule(1))
+    container(iced::widget::rule::horizontal(1))
         .padding(Padding::from([2, 8]))
         .width(Length::Fill)
         .into()
@@ -355,17 +357,17 @@ pub fn menu_dropdown_overlay<'a>(
 
     // Compute horizontal offset based on menu position
     let leading: Element<'a, Message> = match menu_id {
-        MenuId::Left => Space::with_width(Length::Fixed(0.0)).into(),
-        MenuId::File => Space::with_width(Length::Fixed(HEADER_WIDTH)).into(),
-        MenuId::Command => Space::with_width(Length::Fixed(HEADER_WIDTH * 2.0)).into(),
-        MenuId::Options => Space::with_width(Length::Fixed(HEADER_WIDTH * 3.0)).into(),
-        MenuId::Right => Space::with_width(Length::Fill).into(),
+        MenuId::Left => Space::new().width(Length::Fixed(0.0)).into(),
+        MenuId::File => Space::new().width(Length::Fixed(HEADER_WIDTH)).into(),
+        MenuId::Command => Space::new().width(Length::Fixed(HEADER_WIDTH * 2.0)).into(),
+        MenuId::Options => Space::new().width(Length::Fixed(HEADER_WIDTH * 3.0)).into(),
+        MenuId::Right => Space::new().width(Length::Fill).into(),
     };
 
-    let positioned = row![leading, column![Space::with_height(24), dropdown]];
+    let positioned = row![leading, column![Space::new().height(24), dropdown]];
 
     // Click-catcher backdrop: closes menu when clicking outside
-    let backdrop = button(Space::new(Length::Fill, Length::Fill))
+    let backdrop = button(Space::new().width(Length::Fill).height(Length::Fill))
         .width(Length::Fill)
         .height(Length::Fill)
         .style(|_theme, _status| button::Style {
@@ -373,6 +375,7 @@ pub fn menu_dropdown_overlay<'a>(
             text_color: Color::TRANSPARENT,
             border: iced::Border::default(),
             shadow: iced::Shadow::default(),
+            ..Default::default()
         })
         .on_press(Message::MenuClose);
 

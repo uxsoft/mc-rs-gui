@@ -39,7 +39,7 @@ pub fn input_view<'a>(dialog: &'a InputDialog) -> Element<'a, Message> {
             Message::DialogResult(DialogMessage::InputSubmit),
             true
         ),
-        Space::with_width(8),
+        Space::new().width(8),
         dialog_button(
             "Cancel",
             Message::DialogResult(DialogMessage::Cancel),
@@ -49,11 +49,11 @@ pub fn input_view<'a>(dialog: &'a InputDialog) -> Element<'a, Message> {
 
     column![
         title,
-        Space::with_height(8),
+        Space::new().height(8),
         label,
-        Space::with_height(4),
+        Space::new().height(4),
         input,
-        Space::with_height(16),
+        Space::new().height(16),
         buttons,
     ]
     .into()

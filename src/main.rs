@@ -17,10 +17,11 @@ use app::App;
 fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    iced::application(App::title, App::update, App::view)
+    iced::application(App::new, App::update, App::view)
+        .title(App::title)
         .subscription(App::subscription)
         .theme(App::theme)
         .default_font(iced::Font::with_name("Caskaydia Mono Nerd Font"))
         .window_size(iced::Size::new(1200.0, 800.0))
-        .run_with(App::new)
+        .run()
 }

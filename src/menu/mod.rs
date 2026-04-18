@@ -111,7 +111,7 @@ pub fn fn_key_bar<'a>() -> Element<'a, Message> {
         };
 
         items.push(btn.into());
-        items.push(Space::with_width(Length::Fixed(2.0)).into());
+        items.push(Space::new().width(Length::Fixed(2.0)).into());
     }
 
     container(iced::widget::Row::with_children(items).align_y(iced::Alignment::Center))

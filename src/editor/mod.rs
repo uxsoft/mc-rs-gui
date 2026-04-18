@@ -45,7 +45,7 @@ pub fn editor_view<'a>(state: &'a EditorState) -> Element<'a, Message> {
             .size(14)
             .font(Font::with_name("Caskaydia Mono Nerd Font"))
             .color(Color::from_rgb(0.8, 0.85, 0.95)),
-        Space::with_width(Length::Fill),
+        Space::new().width(Length::Fill),
         if let Some(ref msg) = state.status_message {
             text(msg.clone())
                 .size(12)
@@ -66,9 +66,9 @@ pub fn editor_view<'a>(state: &'a EditorState) -> Element<'a, Message> {
     // Footer
     let footer = row![
         editor_button("F2 Save", Message::Editor(EditorMessage::Save)),
-        Space::with_width(4),
+        Space::new().width(4),
         editor_button("F7 Find", Message::Editor(EditorMessage::Find)),
-        Space::with_width(4),
+        Space::new().width(4),
         editor_button("F10 Quit", Message::Editor(EditorMessage::Close)),
     ]
     .padding(Padding::from([4, 8]));

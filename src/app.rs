@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use iced::keyboard;
-use iced::widget::{column, container, row, stack, text_input};
+use iced::widget::{column, container, row, stack, text_input, operation};
 use iced::{Color, Element, Length, Subscription, Task};
 use tokio::io::AsyncReadExt;
 use tokio::io::AsyncWriteExt;
@@ -403,7 +403,7 @@ impl App {
                     value: current_filter,
                     on_submit: |_| Message::DialogResult(DialogMessage::InputSubmit),
                 }));
-                return text_input::focus(input::INPUT_DIALOG_ID);
+                return operation::focus(input::INPUT_DIALOG_ID);
             }
 
             Message::Chmod => {
@@ -473,7 +473,17 @@ impl App {
     }
 
     pub fn subscription(&self) -> Subscription<Message> {
-        keyboard::on_key_press(|key, modifiers| Some(Message::KeyPressed(key, modifiers)))
+        keyboard::listen().map(|event| {
+            match event {
+                keyboard::Event::KeyPressed { key, modifiers, .. } => {
+                    Message::KeyPressed(key, modifiers)
+                }
+                _ => Message::KeyPressed(
+                    keyboard::Key::Named(keyboard::key::Named::Alt),
+                    keyboard::Modifiers::empty(),
+                ),
+            }
+        })
     }
 
     pub fn theme(&self) -> iced::Theme {
@@ -626,7 +636,7 @@ impl App {
             value: String::new(),
             on_submit: |_| Message::DialogResult(DialogMessage::InputSubmit),
         }));
-        text_input::focus(input::INPUT_DIALOG_ID)
+        operation::focus(input::INPUT_DIALOG_ID)
     }
 
     fn initiate_rename(&mut self) -> Task<Message> {
@@ -638,7 +648,7 @@ impl App {
                 value: entry.name.clone(),
                 on_submit: |_| Message::DialogResult(DialogMessage::InputSubmit),
             }));
-            return text_input::focus(input::INPUT_DIALOG_ID);
+            return operation::focus(input::INPUT_DIALOG_ID);
         }
         Task::none()
     }

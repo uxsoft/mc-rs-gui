@@ -29,15 +29,15 @@ pub fn confirm_view<'a>(dialog: &'a ConfirmDialog) -> Element<'a, Message> {
             Message::DialogResult(DialogMessage::Confirm(true)),
             true
         ),
-        Space::with_width(8),
+        Space::new().width(8),
         dialog_button("No", Message::DialogResult(DialogMessage::Cancel), false),
     ];
 
     column![
         title,
-        Space::with_height(8),
+        Space::new().height(8),
         msg,
-        Space::with_height(16),
+        Space::new().height(16),
         buttons
     ]
     .into()
