@@ -109,7 +109,7 @@ jobs:
             artifact: mc-rs-linux-x64
             ext: ""
           - target: aarch64-unknown-linux-gnu
-            runner: ubuntu-latest
+            runner: ubuntu-24.04-arm
             artifact: mc-rs-linux-arm64
             ext: ""
           - target: aarch64-apple-darwin
@@ -144,31 +144,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libwayland-dev libxkbcommon-dev libvulkan-dev
 
-      - name: Install cross-compilation dependencies (Linux ARM64)
+      - name: Install system dependencies (Linux ARM64)
         if: matrix.target == 'aarch64-unknown-linux-gnu'
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-          sudo dpkg --add-architecture arm64
-          # Add arm64 package sources
-          sudo sed -i 's/^deb /deb [arch=amd64] /' /etc/apt/sources.list.d/*.list || true
-          echo "deb [arch=arm64] http://ports.ubuntu.com/ $(lsb_release -cs) main restricted universe" | sudo tee /etc/apt/sources.list.d/arm64.list
-          echo "deb [arch=arm64] http://ports.ubuntu.com/ $(lsb_release -cs)-updates main restricted universe" | sudo tee -a /etc/apt/sources.list.d/arm64.list
-          sudo apt-get update
-          sudo apt-get install -y libwayland-dev:arm64 libxkbcommon-dev:arm64 libvulkan-dev:arm64 || true
-
-      - name: Set cross-compilation env (Linux ARM64)
-        if: matrix.target == 'aarch64-unknown-linux-gnu'
-        run: |
-          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> "$GITHUB_ENV"
-          echo "PKG_CONFIG_SYSROOT_DIR=/usr/aarch64-linux-gnu" >> "$GITHUB_ENV"
-          echo "PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig" >> "$GITHUB_ENV"
+          sudo apt-get install -y libwayland-dev libxkbcommon-dev libvulkan-dev
 
       - name: Build release binary
         run: cargo build --release --target ${{ matrix.target }}
 
       - name: Run tests
-        if: matrix.target != 'aarch64-unknown-linux-gnu'
         run: cargo test --release --target ${{ matrix.target }}
 
       - name: Package artifact (Unix)
