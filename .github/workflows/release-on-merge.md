@@ -81,7 +81,7 @@ Guidelines for the summary:
 
 ### Step 3: Dispatch the release build
 
-Use the `dispatch-workflow` safe output to trigger the `Release` workflow (`release.yml`) on the default branch.
+Use the `dispatch-workflow` safe output to trigger the `Release` workflow (`release.yml`).
 
 Pass the generated release notes as the `release_body` input so the release is created with your AI-generated summary.
 
