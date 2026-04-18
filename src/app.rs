@@ -530,27 +530,28 @@ impl App {
 
     fn try_enter_archive(&mut self, side: PanelSide, entry: &VfsEntry) -> Task<Message> {
         if entry.is_file()
-            && let Some(archive_path) = entry.path.as_local_path() {
-                let p = archive_path.to_string_lossy();
-                let is_archive = p.ends_with(".zip")
-                    || p.ends_with(".jar")
-                    || p.ends_with(".tar")
-                    || p.ends_with(".tar.gz")
-                    || p.ends_with(".tgz");
-                if is_archive {
-                    let scheme = if p.ends_with(".zip") || p.ends_with(".jar") {
-                        "zip"
-                    } else {
-                        "tar"
-                    };
-                    let vfs_path = VfsPath {
-                        scheme: scheme.into(),
-                        authority: Some(p.to_string()),
-                        path: "/".into(),
-                    };
-                    return self.navigate_to(side, vfs_path);
-                }
+            && let Some(archive_path) = entry.path.as_local_path()
+        {
+            let p = archive_path.to_string_lossy();
+            let is_archive = p.ends_with(".zip")
+                || p.ends_with(".jar")
+                || p.ends_with(".tar")
+                || p.ends_with(".tar.gz")
+                || p.ends_with(".tgz");
+            if is_archive {
+                let scheme = if p.ends_with(".zip") || p.ends_with(".jar") {
+                    "zip"
+                } else {
+                    "tar"
+                };
+                let vfs_path = VfsPath {
+                    scheme: scheme.into(),
+                    authority: Some(p.to_string()),
+                    path: "/".into(),
+                };
+                return self.navigate_to(side, vfs_path);
             }
+        }
         Task::none()
     }
 
@@ -789,10 +790,11 @@ impl App {
                             );
                         }
                     } else if title == "Filter"
-                        && let Some(side) = self.pending_filter_side.take() {
-                            self.panel_mut(side).filter = value;
-                            return self.refresh_panel(side);
-                        }
+                        && let Some(side) = self.pending_filter_side.take()
+                    {
+                        self.panel_mut(side).filter = value;
+                        return self.refresh_panel(side);
+                    }
                 }
             }
             DialogMessage::ChmodToggleBit(bit) => {
@@ -835,23 +837,24 @@ impl App {
     fn open_viewer(&mut self) -> Task<Message> {
         let panel = self.active_panel_state();
         if let Some(entry) = panel.current_entry()
-            && entry.is_file() {
-                let name = entry.name.clone();
-                let path = entry.path.clone();
-                let vfs = self.vfs.clone();
-                return Task::perform(
-                    async move {
-                        let mut reader = vfs.open_read(&path).await.map_err(|e| e.to_string())?;
-                        let mut buf = Vec::new();
-                        reader
-                            .read_to_end(&mut buf)
-                            .await
-                            .map_err(|e| e.to_string())?;
-                        Ok(buf)
-                    },
-                    move |result| Message::FileLoaded(name.clone(), result),
-                );
-            }
+            && entry.is_file()
+        {
+            let name = entry.name.clone();
+            let path = entry.path.clone();
+            let vfs = self.vfs.clone();
+            return Task::perform(
+                async move {
+                    let mut reader = vfs.open_read(&path).await.map_err(|e| e.to_string())?;
+                    let mut buf = Vec::new();
+                    reader
+                        .read_to_end(&mut buf)
+                        .await
+                        .map_err(|e| e.to_string())?;
+                    Ok(buf)
+                },
+                move |result| Message::FileLoaded(name.clone(), result),
+            );
+        }
         Task::none()
     }
 
@@ -906,38 +909,40 @@ impl App {
         key: keyboard::Key,
         _modifiers: keyboard::Modifiers,
     ) -> Task<Message> {
-        if let keyboard::Key::Named(named) = key { match named {
-            keyboard::key::Named::Escape | keyboard::key::Named::F3 => {
-                return self.update(Message::Viewer(ViewerMessage::Close));
+        if let keyboard::Key::Named(named) = key {
+            match named {
+                keyboard::key::Named::Escape | keyboard::key::Named::F3 => {
+                    return self.update(Message::Viewer(ViewerMessage::Close));
+                }
+                keyboard::key::Named::ArrowUp => {
+                    return self.update(Message::Viewer(ViewerMessage::ScrollUp));
+                }
+                keyboard::key::Named::ArrowDown => {
+                    return self.update(Message::Viewer(ViewerMessage::ScrollDown));
+                }
+                keyboard::key::Named::PageUp => {
+                    return self.update(Message::Viewer(ViewerMessage::PageUp));
+                }
+                keyboard::key::Named::PageDown => {
+                    return self.update(Message::Viewer(ViewerMessage::PageDown));
+                }
+                keyboard::key::Named::Home => {
+                    return self.update(Message::Viewer(ViewerMessage::GoTop));
+                }
+                keyboard::key::Named::End => {
+                    return self.update(Message::Viewer(ViewerMessage::GoBottom));
+                }
+                keyboard::key::Named::F4 => {
+                    let new_mode = if self.viewer.as_ref().map(|v| v.mode) == Some(ViewMode::Text) {
+                        ViewMode::Hex
+                    } else {
+                        ViewMode::Text
+                    };
+                    return self.update(Message::Viewer(ViewerMessage::SwitchMode(new_mode)));
+                }
+                _ => {}
             }
-            keyboard::key::Named::ArrowUp => {
-                return self.update(Message::Viewer(ViewerMessage::ScrollUp));
-            }
-            keyboard::key::Named::ArrowDown => {
-                return self.update(Message::Viewer(ViewerMessage::ScrollDown));
-            }
-            keyboard::key::Named::PageUp => {
-                return self.update(Message::Viewer(ViewerMessage::PageUp));
-            }
-            keyboard::key::Named::PageDown => {
-                return self.update(Message::Viewer(ViewerMessage::PageDown));
-            }
-            keyboard::key::Named::Home => {
-                return self.update(Message::Viewer(ViewerMessage::GoTop));
-            }
-            keyboard::key::Named::End => {
-                return self.update(Message::Viewer(ViewerMessage::GoBottom));
-            }
-            keyboard::key::Named::F4 => {
-                let new_mode = if self.viewer.as_ref().map(|v| v.mode) == Some(ViewMode::Text) {
-                    ViewMode::Hex
-                } else {
-                    ViewMode::Text
-                };
-                return self.update(Message::Viewer(ViewerMessage::SwitchMode(new_mode)));
-            }
-            _ => {}
-        } }
+        }
         Task::none()
     }
 
@@ -946,26 +951,25 @@ impl App {
     fn open_editor(&mut self) -> Task<Message> {
         let panel = self.active_panel_state();
         if let Some(entry) = panel.current_entry()
-            && entry.is_file() {
-                let name = entry.name.clone();
-                let file_path = entry.path.clone();
-                let vfs = self.vfs.clone();
-                let fp = file_path.clone();
-                return Task::perform(
-                    async move {
-                        let mut reader = vfs.open_read(&fp).await.map_err(|e| e.to_string())?;
-                        let mut buf = Vec::new();
-                        reader
-                            .read_to_end(&mut buf)
-                            .await
-                            .map_err(|e| e.to_string())?;
-                        Ok(buf)
-                    },
-                    move |result| {
-                        Message::FileLoadedForEdit(name.clone(), file_path.clone(), result)
-                    },
-                );
-            }
+            && entry.is_file()
+        {
+            let name = entry.name.clone();
+            let file_path = entry.path.clone();
+            let vfs = self.vfs.clone();
+            let fp = file_path.clone();
+            return Task::perform(
+                async move {
+                    let mut reader = vfs.open_read(&fp).await.map_err(|e| e.to_string())?;
+                    let mut buf = Vec::new();
+                    reader
+                        .read_to_end(&mut buf)
+                        .await
+                        .map_err(|e| e.to_string())?;
+                    Ok(buf)
+                },
+                move |result| Message::FileLoadedForEdit(name.clone(), file_path.clone(), result),
+            );
+        }
         Task::none()
     }
 
@@ -1041,10 +1045,9 @@ impl App {
                 }
                 _ => {}
             },
-            keyboard::Key::Character(ref c)
-                if modifiers.command() && c.as_str() == "s" => {
-                    return self.update(Message::Editor(EditorMessage::Save));
-                }
+            keyboard::Key::Character(ref c) if modifiers.command() && c.as_str() == "s" => {
+                return self.update(Message::Editor(EditorMessage::Save));
+            }
             _ => {}
         }
         Task::none()
@@ -1306,16 +1309,13 @@ impl App {
                 keyboard::key::Named::F10 => return self.update(Message::Quit),
                 _ => {}
             },
-            keyboard::Key::Character(ref c)
-                if modifiers.command() => {
-                    match c.as_str() {
-                        "r" => return self.update(Message::Panel(side, PanelMessage::Refresh)),
-                        "f" => return self.update(Message::OpenSearch),
-                        "h" => return self.update(Message::ToggleHidden),
-                        "d" => return self.update(Message::Bookmark(BookmarkMessage::Add)),
-                        _ => {}
-                    }
-                }
+            keyboard::Key::Character(ref c) if modifiers.command() => match c.as_str() {
+                "r" => return self.update(Message::Panel(side, PanelMessage::Refresh)),
+                "f" => return self.update(Message::OpenSearch),
+                "h" => return self.update(Message::ToggleHidden),
+                "d" => return self.update(Message::Bookmark(BookmarkMessage::Add)),
+                _ => {}
+            },
             _ => {}
         }
         Task::none()

@@ -14,9 +14,10 @@ pub fn load_bookmarks() -> Vec<Bookmark> {
     let path = bookmarks_path();
     if path.exists()
         && let Ok(data) = fs::read_to_string(&path)
-            && let Ok(bookmarks) = serde_json::from_str(&data) {
-                return bookmarks;
-            }
+        && let Ok(bookmarks) = serde_json::from_str(&data)
+    {
+        return bookmarks;
+    }
     Vec::new()
 }
 
