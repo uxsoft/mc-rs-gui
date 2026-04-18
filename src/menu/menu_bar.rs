@@ -111,9 +111,6 @@ enum MenuItem {
         message: Message,
     },
     Separator,
-    Disabled {
-        label: &'static str,
-    },
 }
 
 fn menu_item_button(label: String, shortcut: &str, message: Message) -> Element<'_, Message> {
@@ -149,18 +146,6 @@ fn menu_item_button(label: String, shortcut: &str, message: Message) -> Element<
         .into()
 }
 
-fn menu_item_disabled(label: String) -> Element<'static, Message> {
-    container(
-        text(label)
-            .size(MENU_FONT_SIZE)
-            .font(Font::with_name("Caskaydia Mono Nerd Font"))
-            .color(Color::from_rgb(0.35, 0.35, 0.4)),
-    )
-    .padding(Padding::from([4, 12]))
-    .width(Length::Fill)
-    .into()
-}
-
 fn menu_separator<'a>() -> Element<'a, Message> {
     container(iced::widget::horizontal_rule(1))
         .padding(Padding::from([2, 8]))
@@ -188,7 +173,6 @@ fn render_menu_items<'a>(items: Vec<MenuItem>) -> Element<'a, Message> {
                 menu_item_button(format!("{prefix}{label}"), shortcut, message)
             }
             MenuItem::Separator => menu_separator(),
-            MenuItem::Disabled { label } => menu_item_disabled(format!("  {label}")),
         });
     }
 
@@ -237,8 +221,10 @@ fn panel_menu_items(side: PanelSide) -> Vec<MenuItem> {
             message: Message::Panel(side, PanelMessage::Refresh),
         },
         MenuItem::Separator,
-        MenuItem::Disabled {
+        MenuItem::Action {
             label: "Filter...",
+            shortcut: "",
+            message: Message::OpenFilter(side),
         },
     ]
 }
@@ -281,7 +267,11 @@ fn file_menu_items() -> Vec<MenuItem> {
             shortcut: "Shift+F6",
             message: Message::Rename,
         },
-        MenuItem::Disabled { label: "Chmod" },
+        MenuItem::Action {
+            label: "Chmod",
+            shortcut: "",
+            message: Message::Chmod,
+        },
         MenuItem::Separator,
         MenuItem::Action {
             label: "Quit",
@@ -304,8 +294,10 @@ fn command_menu_items() -> Vec<MenuItem> {
             shortcut: "",
             message: Message::SwapPanels,
         },
-        MenuItem::Disabled {
+        MenuItem::Action {
             label: "Compare directories",
+            shortcut: "",
+            message: Message::CompareDirectories,
         },
         MenuItem::Separator,
         MenuItem::Action {

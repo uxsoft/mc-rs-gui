@@ -1,3 +1,4 @@
+pub mod chmod;
 pub mod confirm;
 pub mod input;
 pub mod progress;
@@ -12,6 +13,7 @@ pub enum DialogKind {
     Confirm(confirm::ConfirmDialog),
     Input(input::InputDialog),
     Progress(progress::ProgressDialog),
+    Chmod(chmod::ChmodDialog),
 }
 
 #[derive(Debug, Clone)]
@@ -20,6 +22,9 @@ pub enum DialogMessage {
     InputChanged(String),
     InputSubmit,
     Cancel,
+    ChmodToggleBit(u32),
+    ChmodOctalChanged(String),
+    ChmodApply,
 }
 
 pub fn dialog_overlay<'a>(dialog: &'a DialogKind) -> Element<'a, Message> {
@@ -27,6 +32,7 @@ pub fn dialog_overlay<'a>(dialog: &'a DialogKind) -> Element<'a, Message> {
         DialogKind::Confirm(d) => confirm::confirm_view(d),
         DialogKind::Input(d) => input::input_view(d),
         DialogKind::Progress(d) => progress::progress_view(d),
+        DialogKind::Chmod(d) => chmod::chmod_view(d),
     };
 
     // Semi-transparent backdrop with centered dialog

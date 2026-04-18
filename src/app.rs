@@ -10,6 +10,7 @@ use tokio::sync::mpsc;
 use crate::bookmarks::storage::{load_bookmarks, save_bookmarks};
 use crate::bookmarks::{Bookmark, BookmarkMessage, BookmarkStore};
 use crate::config::AppConfig;
+use crate::dialogs::chmod::ChmodDialog;
 use crate::dialogs::confirm::ConfirmDialog;
 use crate::dialogs::input::InputDialog;
 use crate::dialogs::progress::ProgressDialog;
@@ -92,6 +93,11 @@ pub enum Message {
     ToggleConfirmDelete,
     ToggleConfirmOverwrite,
     SaveConfig,
+
+    // Filter, Chmod, Compare
+    OpenFilter(PanelSide),
+    Chmod,
+    CompareDirectories,
 }
 
 pub struct App {
@@ -107,6 +113,7 @@ pub struct App {
     pub bookmarks: BookmarkStore,
     pub config: AppConfig,
     pub menu_bar: MenuBarState,
+    pub pending_filter_side: Option<PanelSide>,
 }
 
 impl App {
@@ -137,6 +144,7 @@ impl App {
             bookmarks: bookmark_store,
             config,
             menu_bar: MenuBarState::default(),
+            pending_filter_side: None,
         };
 
         let vfs_l = vfs.clone();
@@ -175,6 +183,10 @@ impl App {
                     Ok(mut entries) => {
                         if !show_hidden {
                             entries.retain(|e| !e.name.starts_with('.'));
+                        }
+                        if !panel.filter.is_empty() {
+                            let filter = panel.filter.clone();
+                            entries.retain(|e| e.name == ".." || glob_match(&filter, &e.name));
                         }
                         panel.set_entries(entries);
                     }
@@ -380,6 +392,25 @@ impl App {
             }
             Message::SaveConfig => {
                 self.config.save();
+            }
+
+            Message::OpenFilter(side) => {
+                let current_filter = self.panel_mut(side).filter.clone();
+                self.pending_filter_side = Some(side);
+                self.dialog = Some(DialogKind::Input(InputDialog {
+                    title: "Filter".into(),
+                    label: "Pattern (e.g. *.rs, empty to clear):".into(),
+                    value: current_filter,
+                    on_submit: |_| Message::DialogResult(DialogMessage::InputSubmit),
+                }));
+            }
+
+            Message::Chmod => {
+                return self.initiate_chmod();
+            }
+
+            Message::CompareDirectories => {
+                self.compare_directories();
             }
         }
         Task::none()
@@ -610,6 +641,85 @@ impl App {
         Task::none()
     }
 
+    fn initiate_chmod(&mut self) -> Task<Message> {
+        let panel = self.active_panel_state();
+        if let Some(entry) = panel.current_entry() {
+            let mode = entry.permissions.unwrap_or(0o644);
+            self.dialog = Some(DialogKind::Chmod(ChmodDialog::new(
+                entry.path.clone(),
+                entry.name.clone(),
+                mode,
+            )));
+        }
+        Task::none()
+    }
+
+    fn compare_directories(&mut self) {
+        use std::collections::HashMap;
+
+        // If already highlighted, clear (toggle off)
+        if !self.left_panel.highlighted.is_empty() || !self.right_panel.highlighted.is_empty() {
+            self.left_panel.highlighted.clear();
+            self.right_panel.highlighted.clear();
+            return;
+        }
+
+        // Build name -> (size, modified) maps for each panel
+        let left_map: HashMap<&str, (u64, Option<std::time::SystemTime>)> = self
+            .left_panel
+            .entries
+            .iter()
+            .filter(|e| e.name != "..")
+            .map(|e| (e.name.as_str(), (e.size, e.modified)))
+            .collect();
+
+        let right_map: HashMap<&str, (u64, Option<std::time::SystemTime>)> = self
+            .right_panel
+            .entries
+            .iter()
+            .filter(|e| e.name != "..")
+            .map(|e| (e.name.as_str(), (e.size, e.modified)))
+            .collect();
+
+        // Highlight entries that differ
+        let mut left_hl = std::collections::HashSet::new();
+        for (i, entry) in self.left_panel.entries.iter().enumerate() {
+            if entry.name == ".." {
+                continue;
+            }
+            match right_map.get(entry.name.as_str()) {
+                None => {
+                    left_hl.insert(i);
+                }
+                Some(&(size, modified)) => {
+                    if entry.size != size || entry.modified != modified {
+                        left_hl.insert(i);
+                    }
+                }
+            }
+        }
+
+        let mut right_hl = std::collections::HashSet::new();
+        for (i, entry) in self.right_panel.entries.iter().enumerate() {
+            if entry.name == ".." {
+                continue;
+            }
+            match left_map.get(entry.name.as_str()) {
+                None => {
+                    right_hl.insert(i);
+                }
+                Some(&(size, modified)) => {
+                    if entry.size != size || entry.modified != modified {
+                        right_hl.insert(i);
+                    }
+                }
+            }
+        }
+
+        self.left_panel.highlighted = left_hl;
+        self.right_panel.highlighted = right_hl;
+    }
+
     fn start_operation(&mut self, op: OperationKind) -> Task<Message> {
         let (tx, _rx) = mpsc::unbounded_channel();
         let vfs = self.vfs.clone();
@@ -671,7 +781,42 @@ impl App {
                                 Message::OperationComplete,
                             );
                         }
+                    } else if title == "Filter" {
+                        if let Some(side) = self.pending_filter_side.take() {
+                            self.panel_mut(side).filter = value;
+                            return self.refresh_panel(side);
+                        }
                     }
+                }
+            }
+            DialogMessage::ChmodToggleBit(bit) => {
+                if let Some(DialogKind::Chmod(ref mut d)) = self.dialog {
+                    d.mode ^= bit;
+                    d.octal_input = format!("{:04o}", d.mode & 0o7777);
+                }
+            }
+            DialogMessage::ChmodOctalChanged(value) => {
+                if let Some(DialogKind::Chmod(ref mut d)) = self.dialog {
+                    d.octal_input = value.clone();
+                    if let Ok(mode) = u32::from_str_radix(&value, 8) {
+                        d.mode = mode & 0o7777;
+                    }
+                }
+            }
+            DialogMessage::ChmodApply => {
+                if let Some(DialogKind::Chmod(ref d)) = self.dialog {
+                    let path = d.path.clone();
+                    let mode = d.mode;
+                    let vfs = self.vfs.clone();
+                    self.dialog = None;
+                    return Task::perform(
+                        async move {
+                            vfs.set_permissions(&path, mode)
+                                .await
+                                .map_err(|e| e.to_string())
+                        },
+                        Message::OperationComplete,
+                    );
                 }
             }
             _ => {}
@@ -1166,4 +1311,35 @@ impl App {
         }
         Task::none()
     }
+}
+
+/// Simple glob matching: supports `*` as wildcard for any characters.
+/// e.g. `*.rs` matches `main.rs`, `foo*bar` matches `fooXYZbar`.
+fn glob_match(pattern: &str, name: &str) -> bool {
+    let pattern = pattern.to_lowercase();
+    let name = name.to_lowercase();
+    let parts: Vec<&str> = pattern.split('*').collect();
+    if parts.len() == 1 {
+        // No wildcard: substring match
+        return name.contains(&pattern);
+    }
+    let mut pos = 0;
+    for (i, part) in parts.iter().enumerate() {
+        if part.is_empty() {
+            continue;
+        }
+        if let Some(found) = name[pos..].find(part) {
+            if i == 0 && found != 0 {
+                return false; // must match from start if pattern doesn't start with *
+            }
+            pos += found + part.len();
+        } else {
+            return false;
+        }
+    }
+    // If pattern doesn't end with *, the name must end at pos
+    if !pattern.ends_with('*') {
+        return pos == name.len();
+    }
+    true
 }
