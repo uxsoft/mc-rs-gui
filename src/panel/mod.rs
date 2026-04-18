@@ -66,8 +66,11 @@ impl PanelState {
     pub fn set_entries(&mut self, mut entries: Vec<VfsEntry>) {
         sort::sort_entries(&mut entries, self.sort_mode, self.sort_ascending);
 
-        // Insert ".." entry at the top if the current path has a parent
-        if let Some(parent) = self.current_path.parent() {
+        // Insert ".." entry at the top if we can navigate up
+        // For VFS roots (zip/tar/ftp/sftp), exit to the parent filesystem
+        let parent_path = self.current_path.parent()
+            .or_else(|| self.current_path.exit_parent());
+        if let Some(parent) = parent_path {
             entries.insert(
                 0,
                 VfsEntry {

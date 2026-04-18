@@ -36,6 +36,26 @@ impl VfsPath {
         })
     }
 
+    /// Returns the path to navigate to when exiting this VFS at its root.
+    /// For archives (zip/tar): the directory containing the archive file.
+    /// For remote (ftp/sftp): the user's home directory.
+    /// For local paths: None (use regular parent).
+    pub fn exit_parent(&self) -> Option<Self> {
+        match self.scheme.as_str() {
+            "zip" | "tar" => {
+                // authority holds the archive file path on the local filesystem
+                self.authority.as_ref().and_then(|archive_path| {
+                    let p = Path::new(archive_path);
+                    p.parent().map(|dir| VfsPath::local(dir))
+                })
+            }
+            "ftp" | "sftp" => {
+                Some(VfsPath::local(dirs::home_dir().unwrap_or_else(|| PathBuf::from("/"))))
+            }
+            _ => None,
+        }
+    }
+
     pub fn join(&self, name: &str) -> Self {
         Self {
             scheme: self.scheme.clone(),

@@ -931,7 +931,9 @@ impl App {
             }
             PanelMessage::GoUp => {
                 let panel = self.panel_mut(side);
-                if let Some(parent) = panel.current_path.parent() {
+                let target = panel.current_path.parent()
+                    .or_else(|| panel.current_path.exit_parent());
+                if let Some(parent) = target {
                     return self.navigate_to(side, parent);
                 }
             }
