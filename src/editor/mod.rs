@@ -43,13 +43,13 @@ pub fn editor_view<'a>(state: &'a EditorState) -> Element<'a, Message> {
     let header = row![
         text(format!("{}{dirty_marker}", state.file_name))
             .size(14)
-            .font(Font::MONOSPACE)
+            .font(Font::with_name("Caskaydia Mono Nerd Font"))
             .color(Color::from_rgb(0.8, 0.85, 0.95)),
         Space::with_width(Length::Fill),
         if let Some(ref msg) = state.status_message {
             text(msg.clone())
                 .size(12)
-                .font(Font::MONOSPACE)
+                .font(Font::with_name("Caskaydia Mono Nerd Font"))
                 .color(Color::from_rgb(0.5, 0.8, 0.5))
         } else {
             text(String::new()).size(12)
@@ -60,7 +60,7 @@ pub fn editor_view<'a>(state: &'a EditorState) -> Element<'a, Message> {
     // Editor area
     let editor = text_editor(&state.content)
         .on_action(|action| Message::Editor(EditorMessage::ActionPerformed(action)))
-        .font(Font::MONOSPACE)
+        .font(Font::with_name("Caskaydia Mono Nerd Font"))
         .size(13);
 
     // Footer
@@ -89,7 +89,7 @@ fn editor_button<'a>(label: &str, msg: Message) -> Element<'a, Message> {
     button(
         text(label.to_string())
             .size(12)
-            .font(Font::MONOSPACE)
+            .font(Font::with_name("Caskaydia Mono Nerd Font"))
             .color(Color::from_rgb(0.85, 0.85, 0.9)),
     )
     .padding(Padding::from([2, 8]))

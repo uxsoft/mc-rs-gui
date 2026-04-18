@@ -27,12 +27,12 @@ impl ProgressDialog {
 pub fn progress_view<'a>(dialog: &'a ProgressDialog) -> Element<'a, Message> {
     let title = text(&dialog.title)
         .size(16)
-        .font(Font::MONOSPACE)
+        .font(Font::with_name("Caskaydia Mono Nerd Font"))
         .color(Color::from_rgb(0.9, 0.9, 0.95));
 
     let file_text = text(&dialog.current_file)
         .size(12)
-        .font(Font::MONOSPACE)
+        .font(Font::with_name("Caskaydia Mono Nerd Font"))
         .color(Color::from_rgb(0.6, 0.6, 0.65));
 
     let bar = progress_bar(0.0..=1.0, dialog.fraction()).height(8);
@@ -45,7 +45,7 @@ pub fn progress_view<'a>(dialog: &'a ProgressDialog) -> Element<'a, Message> {
         dialog.files_total,
     ))
     .size(12)
-    .font(Font::MONOSPACE)
+    .font(Font::with_name("Caskaydia Mono Nerd Font"))
     .color(Color::from_rgb(0.6, 0.6, 0.65));
 
     column![

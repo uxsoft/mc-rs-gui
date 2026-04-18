@@ -72,7 +72,7 @@ fn dialog_button<'a>(label: &str, msg: Message, primary: bool) -> Element<'a, Me
     button(
         text(label.to_string())
             .size(14)
-            .font(Font::MONOSPACE)
+            .font(Font::with_name("Caskaydia Mono Nerd Font"))
             .color(Color::from_rgb(0.9, 0.9, 0.95)),
     )
     .padding(Padding::from([6, 16]))

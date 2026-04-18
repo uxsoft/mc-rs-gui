@@ -77,17 +77,17 @@ pub fn viewer_view<'a>(state: &'a ViewerState) -> Element<'a, Message> {
     let header = row![
         text(&state.file_name)
             .size(14)
-            .font(Font::MONOSPACE)
+            .font(Font::with_name("Caskaydia Mono Nerd Font"))
             .color(Color::from_rgb(0.8, 0.85, 0.95)),
         Space::with_width(Length::Fill),
         text(format!("Mode: {mode_label}"))
             .size(12)
-            .font(Font::MONOSPACE)
+            .font(Font::with_name("Caskaydia Mono Nerd Font"))
             .color(Color::from_rgb(0.6, 0.6, 0.65)),
         Space::with_width(8),
         text(format!("Line {}", state.offset + 1))
             .size(12)
-            .font(Font::MONOSPACE)
+            .font(Font::with_name("Caskaydia Mono Nerd Font"))
             .color(Color::from_rgb(0.6, 0.6, 0.65)),
     ]
     .padding(Padding::from([4, 12]));
@@ -131,7 +131,7 @@ fn viewer_button<'a>(label: &str, msg: Message) -> Element<'a, Message> {
     button(
         text(label.to_string())
             .size(12)
-            .font(Font::MONOSPACE)
+            .font(Font::with_name("Caskaydia Mono Nerd Font"))
             .color(Color::from_rgb(0.85, 0.85, 0.9)),
     )
     .padding(Padding::from([2, 8]))

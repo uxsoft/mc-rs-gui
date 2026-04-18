@@ -51,7 +51,7 @@ pub fn hex_content_view<'a>(state: &'a ViewerState) -> Element<'a, Message> {
         rows.push(
             text(line)
                 .size(13)
-                .font(Font::MONOSPACE)
+                .font(Font::with_name("Caskaydia Mono Nerd Font"))
                 .color(Color::from_rgb(0.75, 0.8, 0.85))
                 .into(),
         );

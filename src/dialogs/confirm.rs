@@ -15,12 +15,12 @@ pub struct ConfirmDialog {
 pub fn confirm_view<'a>(dialog: &'a ConfirmDialog) -> Element<'a, Message> {
     let title = text(&dialog.title)
         .size(16)
-        .font(Font::MONOSPACE)
+        .font(Font::with_name("Caskaydia Mono Nerd Font"))
         .color(Color::from_rgb(0.9, 0.9, 0.95));
 
     let msg = text(&dialog.message)
         .size(13)
-        .font(Font::MONOSPACE)
+        .font(Font::with_name("Caskaydia Mono Nerd Font"))
         .color(Color::from_rgb(0.7, 0.7, 0.75));
 
     let buttons = row![
