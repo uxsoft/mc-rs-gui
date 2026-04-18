@@ -10,6 +10,7 @@ mod search;
 mod util;
 mod vfs;
 mod viewer;
+mod widgets;
 
 use app::App;
 

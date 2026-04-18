@@ -48,6 +48,34 @@ impl VfsPath {
         self.path.file_name().and_then(|n| n.to_str())
     }
 
+    /// Parse a string into a VfsPath.
+    /// Supports plain paths like `/home/user` and URI-style like `ftp://host/path`.
+    pub fn parse(s: &str) -> Self {
+        if let Some(rest) = s.strip_prefix("file://") {
+            VfsPath::local(rest)
+        } else if let Some(pos) = s.find("://") {
+            let scheme = &s[..pos];
+            let after_scheme = &s[pos + 3..];
+            if let Some(slash_pos) = after_scheme.find('/') {
+                let authority = &after_scheme[..slash_pos];
+                let path = &after_scheme[slash_pos..];
+                VfsPath {
+                    scheme: scheme.to_string(),
+                    authority: Some(authority.to_string()),
+                    path: PathBuf::from(path),
+                }
+            } else {
+                VfsPath {
+                    scheme: scheme.to_string(),
+                    authority: Some(after_scheme.to_string()),
+                    path: PathBuf::from("/"),
+                }
+            }
+        } else {
+            VfsPath::local(s)
+        }
+    }
+
     pub fn is_local(&self) -> bool {
         self.scheme == "file"
     }

@@ -986,6 +986,23 @@ impl App {
             PanelMessage::Refresh => {
                 return self.refresh_panel(side);
             }
+            PanelMessage::PathBarClicked => {
+                let panel = self.panel_mut(side);
+                panel.path_input_value = panel.current_path.to_string();
+                panel.path_editing = true;
+            }
+            PanelMessage::PathInputChanged(s) => {
+                self.panel_mut(side).path_input_value = s;
+            }
+            PanelMessage::PathInputSubmit => {
+                let panel = self.panel_mut(side);
+                let path = VfsPath::parse(&panel.path_input_value);
+                panel.path_editing = false;
+                return self.navigate_to(side, path);
+            }
+            PanelMessage::PathInputCancel => {
+                self.panel_mut(side).path_editing = false;
+            }
         }
         Task::none()
     }
@@ -994,6 +1011,14 @@ impl App {
 
     fn handle_key(&mut self, key: keyboard::Key, modifiers: keyboard::Modifiers) -> Task<Message> {
         let side = self.active_panel;
+
+        // When path bar is being edited, only handle Escape to cancel
+        if self.active_panel_state().path_editing {
+            if let keyboard::Key::Named(keyboard::key::Named::Escape) = key {
+                return self.update(Message::Panel(side, PanelMessage::PathInputCancel));
+            }
+            return Task::none();
+        }
 
         match key {
             keyboard::Key::Named(named) => match named {

@@ -11,6 +11,7 @@ use crate::app::{Message, PanelSide};
 use crate::util::human_size::format_size;
 use crate::util::time_fmt::format_time;
 use crate::vfs::{EntryType, VfsEntry, VfsPath};
+use crate::widgets::path_input::path_input_view;
 
 use self::sort::SortMode;
 
@@ -27,6 +28,10 @@ pub enum PanelMessage {
     CursorEnd,
     Sort(SortMode),
     Refresh,
+    PathBarClicked,
+    PathInputChanged(String),
+    PathInputSubmit,
+    PathInputCancel,
 }
 
 pub struct PanelState {
@@ -38,6 +43,8 @@ pub struct PanelState {
     pub sort_ascending: bool,
     pub loading: bool,
     pub error: Option<String>,
+    pub path_editing: bool,
+    pub path_input_value: String,
 }
 
 impl PanelState {
@@ -51,6 +58,8 @@ impl PanelState {
             sort_ascending: true,
             loading: true,
             error: None,
+            path_editing: false,
+            path_input_value: String::new(),
         }
     }
 
@@ -130,14 +139,12 @@ pub fn panel_view<'a>(
     };
 
     // Path header
-    let path_text = text(state.current_path.to_string())
-        .size(13)
-        .font(Font::with_name("Caskaydia Mono Nerd Font"))
-        .color(Color::from_rgb(0.7, 0.8, 0.95));
-
-    let path_bar = container(path_text)
-        .width(Length::Fill)
-        .padding(Padding::from([4, 8]));
+    let path_bar = path_input_view(
+        &state.current_path.to_string(),
+        state.path_editing,
+        &state.path_input_value,
+        side,
+    );
 
     // Column headers
     let header_row = row![
