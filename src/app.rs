@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use iced::keyboard;
-use iced::widget::{column, container, operation, row, stack, text_input};
+use iced::widget::{column, container, operation, row, stack};
 use iced::{Color, Element, Length, Subscription, Task};
 use tokio::io::AsyncReadExt;
 use tokio::io::AsyncWriteExt;
@@ -529,8 +529,8 @@ impl App {
     }
 
     fn try_enter_archive(&mut self, side: PanelSide, entry: &VfsEntry) -> Task<Message> {
-        if entry.is_file() {
-            if let Some(archive_path) = entry.path.as_local_path() {
+        if entry.is_file()
+            && let Some(archive_path) = entry.path.as_local_path() {
                 let p = archive_path.to_string_lossy();
                 let is_archive = p.ends_with(".zip")
                     || p.ends_with(".jar")
@@ -551,7 +551,6 @@ impl App {
                     return self.navigate_to(side, vfs_path);
                 }
             }
-        }
         Task::none()
     }
 
@@ -789,12 +788,11 @@ impl App {
                                 Message::OperationComplete,
                             );
                         }
-                    } else if title == "Filter" {
-                        if let Some(side) = self.pending_filter_side.take() {
+                    } else if title == "Filter"
+                        && let Some(side) = self.pending_filter_side.take() {
                             self.panel_mut(side).filter = value;
                             return self.refresh_panel(side);
                         }
-                    }
                 }
             }
             DialogMessage::ChmodToggleBit(bit) => {
@@ -836,8 +834,8 @@ impl App {
 
     fn open_viewer(&mut self) -> Task<Message> {
         let panel = self.active_panel_state();
-        if let Some(entry) = panel.current_entry() {
-            if entry.is_file() {
+        if let Some(entry) = panel.current_entry()
+            && entry.is_file() {
                 let name = entry.name.clone();
                 let path = entry.path.clone();
                 let vfs = self.vfs.clone();
@@ -854,7 +852,6 @@ impl App {
                     move |result| Message::FileLoaded(name.clone(), result),
                 );
             }
-        }
         Task::none()
     }
 
@@ -909,41 +906,38 @@ impl App {
         key: keyboard::Key,
         _modifiers: keyboard::Modifiers,
     ) -> Task<Message> {
-        match key {
-            keyboard::Key::Named(named) => match named {
-                keyboard::key::Named::Escape | keyboard::key::Named::F3 => {
-                    return self.update(Message::Viewer(ViewerMessage::Close));
-                }
-                keyboard::key::Named::ArrowUp => {
-                    return self.update(Message::Viewer(ViewerMessage::ScrollUp));
-                }
-                keyboard::key::Named::ArrowDown => {
-                    return self.update(Message::Viewer(ViewerMessage::ScrollDown));
-                }
-                keyboard::key::Named::PageUp => {
-                    return self.update(Message::Viewer(ViewerMessage::PageUp));
-                }
-                keyboard::key::Named::PageDown => {
-                    return self.update(Message::Viewer(ViewerMessage::PageDown));
-                }
-                keyboard::key::Named::Home => {
-                    return self.update(Message::Viewer(ViewerMessage::GoTop));
-                }
-                keyboard::key::Named::End => {
-                    return self.update(Message::Viewer(ViewerMessage::GoBottom));
-                }
-                keyboard::key::Named::F4 => {
-                    let new_mode = if self.viewer.as_ref().map(|v| v.mode) == Some(ViewMode::Text) {
-                        ViewMode::Hex
-                    } else {
-                        ViewMode::Text
-                    };
-                    return self.update(Message::Viewer(ViewerMessage::SwitchMode(new_mode)));
-                }
-                _ => {}
-            },
+        if let keyboard::Key::Named(named) = key { match named {
+            keyboard::key::Named::Escape | keyboard::key::Named::F3 => {
+                return self.update(Message::Viewer(ViewerMessage::Close));
+            }
+            keyboard::key::Named::ArrowUp => {
+                return self.update(Message::Viewer(ViewerMessage::ScrollUp));
+            }
+            keyboard::key::Named::ArrowDown => {
+                return self.update(Message::Viewer(ViewerMessage::ScrollDown));
+            }
+            keyboard::key::Named::PageUp => {
+                return self.update(Message::Viewer(ViewerMessage::PageUp));
+            }
+            keyboard::key::Named::PageDown => {
+                return self.update(Message::Viewer(ViewerMessage::PageDown));
+            }
+            keyboard::key::Named::Home => {
+                return self.update(Message::Viewer(ViewerMessage::GoTop));
+            }
+            keyboard::key::Named::End => {
+                return self.update(Message::Viewer(ViewerMessage::GoBottom));
+            }
+            keyboard::key::Named::F4 => {
+                let new_mode = if self.viewer.as_ref().map(|v| v.mode) == Some(ViewMode::Text) {
+                    ViewMode::Hex
+                } else {
+                    ViewMode::Text
+                };
+                return self.update(Message::Viewer(ViewerMessage::SwitchMode(new_mode)));
+            }
             _ => {}
-        }
+        } }
         Task::none()
     }
 
@@ -951,8 +945,8 @@ impl App {
 
     fn open_editor(&mut self) -> Task<Message> {
         let panel = self.active_panel_state();
-        if let Some(entry) = panel.current_entry() {
-            if entry.is_file() {
+        if let Some(entry) = panel.current_entry()
+            && entry.is_file() {
                 let name = entry.name.clone();
                 let file_path = entry.path.clone();
                 let vfs = self.vfs.clone();
@@ -972,7 +966,6 @@ impl App {
                     },
                 );
             }
-        }
         Task::none()
     }
 
@@ -1048,11 +1041,10 @@ impl App {
                 }
                 _ => {}
             },
-            keyboard::Key::Character(ref c) => {
-                if modifiers.command() && c.as_str() == "s" {
+            keyboard::Key::Character(ref c)
+                if modifiers.command() && c.as_str() == "s" => {
                     return self.update(Message::Editor(EditorMessage::Save));
                 }
-            }
             _ => {}
         }
         Task::none()
@@ -1086,7 +1078,7 @@ impl App {
                     let content = s.content_pattern.clone();
                     let vfs = self.vfs.clone();
 
-                    let (tx, mut rx) = mpsc::unbounded_channel();
+                    let (tx, _rx) = mpsc::unbounded_channel();
 
                     // Spawn the search task
                     tokio::spawn(async move {
@@ -1314,8 +1306,8 @@ impl App {
                 keyboard::key::Named::F10 => return self.update(Message::Quit),
                 _ => {}
             },
-            keyboard::Key::Character(ref c) => {
-                if modifiers.command() {
+            keyboard::Key::Character(ref c)
+                if modifiers.command() => {
                     match c.as_str() {
                         "r" => return self.update(Message::Panel(side, PanelMessage::Refresh)),
                         "f" => return self.update(Message::OpenSearch),
@@ -1324,7 +1316,6 @@ impl App {
                         _ => {}
                     }
                 }
-            }
             _ => {}
         }
         Task::none()

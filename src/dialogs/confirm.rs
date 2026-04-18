@@ -1,5 +1,5 @@
 use iced::widget::{Space, column, row, text};
-use iced::{Color, Element, Font, Length};
+use iced::{Color, Element, Font};
 
 use crate::app::Message;
 

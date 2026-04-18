@@ -1,5 +1,5 @@
 use iced::widget::{Space, column, progress_bar, text};
-use iced::{Color, Element, Font, Length};
+use iced::{Color, Element, Font};
 
 use crate::app::Message;
 use crate::util::human_size::format_size;

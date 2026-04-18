@@ -3,8 +3,8 @@ pub mod confirm;
 pub mod input;
 pub mod progress;
 
-use iced::widget::{Space, button, column, container, row, text};
-use iced::{Alignment, Color, Element, Font, Length, Padding};
+use iced::widget::{button, container, text};
+use iced::{Color, Element, Font, Length, Padding};
 
 use crate::app::Message;
 

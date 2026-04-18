@@ -53,7 +53,7 @@ impl ViewerState {
     pub fn total_lines(&self) -> usize {
         match self.mode {
             ViewMode::Text => self.content.iter().filter(|&&b| b == b'\n').count().max(1),
-            ViewMode::Hex => (self.content.len() + 15) / 16,
+            ViewMode::Hex => self.content.len().div_ceil(16),
         }
     }
 

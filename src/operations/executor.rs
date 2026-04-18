@@ -4,7 +4,7 @@ use tokio::io::AsyncReadExt;
 use tokio::io::AsyncWriteExt;
 use tokio::sync::mpsc;
 
-use crate::vfs::{VfsEntry, VfsError, VfsPath, VfsRouter};
+use crate::vfs::{VfsPath, VfsRouter};
 
 use super::{OperationKind, OperationProgress};
 

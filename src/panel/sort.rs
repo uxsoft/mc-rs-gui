@@ -8,7 +8,7 @@ pub enum SortMode {
     Modified,
 }
 
-pub fn sort_entries(entries: &mut Vec<VfsEntry>, mode: SortMode, ascending: bool) {
+pub fn sort_entries(entries: &mut [VfsEntry], mode: SortMode, ascending: bool) {
     // Directories always first
     entries.sort_by(|a, b| {
         let dir_ord = b.is_dir().cmp(&a.is_dir());

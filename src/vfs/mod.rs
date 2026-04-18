@@ -46,7 +46,7 @@ impl VfsPath {
                 // authority holds the archive file path on the local filesystem
                 self.authority.as_ref().and_then(|archive_path| {
                     let p = Path::new(archive_path);
-                    p.parent().map(|dir| VfsPath::local(dir))
+                    p.parent().map(VfsPath::local)
                 })
             }
             "ftp" | "sftp" => Some(VfsPath::local(
