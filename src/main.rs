@@ -19,7 +19,7 @@ fn main() -> iced::Result {
     iced::application(App::title, App::update, App::view)
         .subscription(App::subscription)
         .theme(App::theme)
-        .default_font(iced::Font::MONOSPACE)
+        .default_font(iced::Font::with_name("Caskaydia Mono Nerd Font"))
         .window_size(iced::Size::new(1200.0, 800.0))
         .run_with(App::new)
 }

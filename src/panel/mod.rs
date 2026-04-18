@@ -132,7 +132,7 @@ pub fn panel_view<'a>(
     // Path header
     let path_text = text(state.current_path.to_string())
         .size(13)
-        .font(Font::MONOSPACE)
+        .font(Font::with_name("Caskaydia Mono Nerd Font"))
         .color(Color::from_rgb(0.7, 0.8, 0.95));
 
     let path_bar = container(path_text)
@@ -143,17 +143,17 @@ pub fn panel_view<'a>(
     let header_row = row![
         text("Name")
             .size(12)
-            .font(Font::MONOSPACE)
+            .font(Font::with_name("Caskaydia Mono Nerd Font"))
             .color(Color::from_rgb(0.6, 0.6, 0.65))
             .width(Length::Fill),
         text("Size")
             .size(12)
-            .font(Font::MONOSPACE)
+            .font(Font::with_name("Caskaydia Mono Nerd Font"))
             .color(Color::from_rgb(0.6, 0.6, 0.65))
             .width(Length::Fixed(80.0)),
         text("Modified")
             .size(12)
-            .font(Font::MONOSPACE)
+            .font(Font::with_name("Caskaydia Mono Nerd Font"))
             .color(Color::from_rgb(0.6, 0.6, 0.65))
             .width(Length::Fixed(140.0)),
     ]
@@ -196,12 +196,12 @@ pub fn panel_view<'a>(
                 row![
                     text("/..")
                         .size(13)
-                        .font(Font::MONOSPACE)
+                        .font(Font::with_name("Caskaydia Mono Nerd Font"))
                         .color(Color::from_rgb(0.8, 0.8, 0.85))
                         .width(Length::Fill),
                     text("<DIR>")
                         .size(13)
-                        .font(Font::MONOSPACE)
+                        .font(Font::with_name("Caskaydia Mono Nerd Font"))
                         .color(Color::from_rgb(0.5, 0.5, 0.55))
                         .width(Length::Fixed(80.0)),
                     Space::with_width(Length::Fixed(140.0)),
@@ -257,17 +257,17 @@ pub fn panel_view<'a>(
                 row![
                     text(&entry.name)
                         .size(13)
-                        .font(Font::MONOSPACE)
+                        .font(Font::with_name("Caskaydia Mono Nerd Font"))
                         .color(name_color)
                         .width(Length::Fill),
                     text(size_text)
                         .size(13)
-                        .font(Font::MONOSPACE)
+                        .font(Font::with_name("Caskaydia Mono Nerd Font"))
                         .color(Color::from_rgb(0.6, 0.6, 0.65))
                         .width(Length::Fixed(80.0)),
                     text(modified_text)
                         .size(13)
-                        .font(Font::MONOSPACE)
+                        .font(Font::with_name("Caskaydia Mono Nerd Font"))
                         .color(Color::from_rgb(0.5, 0.5, 0.55))
                         .width(Length::Fixed(140.0)),
                 ]
@@ -314,7 +314,7 @@ pub fn panel_view<'a>(
     let status_bar = container(
         text(status_text)
             .size(12)
-            .font(Font::MONOSPACE)
+            .font(Font::with_name("Caskaydia Mono Nerd Font"))
             .color(Color::from_rgb(0.5, 0.5, 0.55)),
     )
     .width(Length::Fill)

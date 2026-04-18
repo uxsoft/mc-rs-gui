@@ -68,12 +68,12 @@ pub fn fn_key_bar<'a>() -> Element<'a, Message> {
     for def in &keys {
         let key_label = text(format!("F{}", def.key))
             .size(12)
-            .font(Font::MONOSPACE)
+            .font(Font::with_name("Caskaydia Mono Nerd Font"))
             .color(Color::from_rgb(0.6, 0.6, 0.65));
 
         let action_label = text(def.label)
             .size(12)
-            .font(Font::MONOSPACE)
+            .font(Font::with_name("Caskaydia Mono Nerd Font"))
             .color(Color::from_rgb(0.85, 0.85, 0.9));
 
         let content = row![key_label, action_label].spacing(2);

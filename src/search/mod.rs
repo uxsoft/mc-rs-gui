@@ -41,45 +41,45 @@ impl SearchState {
 pub fn search_view<'a>(state: &'a SearchState) -> Element<'a, Message> {
     let title = text("File Search")
         .size(16)
-        .font(Font::MONOSPACE)
+        .font(Font::with_name("Caskaydia Mono Nerd Font"))
         .color(Color::from_rgb(0.9, 0.9, 0.95));
 
     let dir_input = row![
         text("Directory:")
             .size(13)
-            .font(Font::MONOSPACE)
+            .font(Font::with_name("Caskaydia Mono Nerd Font"))
             .color(Color::from_rgb(0.7, 0.7, 0.75))
             .width(Length::Fixed(100.0)),
         text_input("", &state.directory)
             .on_input(|s| Message::Search(SearchMessage::DirectoryChanged(s)))
             .size(13)
-            .font(Font::MONOSPACE),
+            .font(Font::with_name("Caskaydia Mono Nerd Font")),
     ]
     .spacing(8);
 
     let pattern_input = row![
         text("File name:")
             .size(13)
-            .font(Font::MONOSPACE)
+            .font(Font::with_name("Caskaydia Mono Nerd Font"))
             .color(Color::from_rgb(0.7, 0.7, 0.75))
             .width(Length::Fixed(100.0)),
         text_input("*", &state.pattern)
             .on_input(|s| Message::Search(SearchMessage::PatternChanged(s)))
             .size(13)
-            .font(Font::MONOSPACE),
+            .font(Font::with_name("Caskaydia Mono Nerd Font")),
     ]
     .spacing(8);
 
     let content_input = row![
         text("Content:")
             .size(13)
-            .font(Font::MONOSPACE)
+            .font(Font::with_name("Caskaydia Mono Nerd Font"))
             .color(Color::from_rgb(0.7, 0.7, 0.75))
             .width(Length::Fixed(100.0)),
         text_input("", &state.content_pattern)
             .on_input(|s| Message::Search(SearchMessage::ContentChanged(s)))
             .size(13)
-            .font(Font::MONOSPACE),
+            .font(Font::with_name("Caskaydia Mono Nerd Font")),
     ]
     .spacing(8);
 
@@ -90,7 +90,7 @@ pub fn search_view<'a>(state: &'a SearchState) -> Element<'a, Message> {
             "Search"
         })
         .size(14)
-        .font(Font::MONOSPACE),
+        .font(Font::with_name("Caskaydia Mono Nerd Font")),
     )
     .padding(Padding::from([6, 16]))
     .on_press_maybe(if state.searching {
@@ -107,7 +107,7 @@ pub fn search_view<'a>(state: &'a SearchState) -> Element<'a, Message> {
             button(
                 text(path.to_string())
                     .size(12)
-                    .font(Font::MONOSPACE)
+                    .font(Font::with_name("Caskaydia Mono Nerd Font"))
                     .color(Color::from_rgb(0.7, 0.8, 0.95)),
             )
             .style(|_theme, _status| button::Style {
@@ -125,13 +125,13 @@ pub fn search_view<'a>(state: &'a SearchState) -> Element<'a, Message> {
 
     let status = text(format!("{} results found", state.results.len()))
         .size(12)
-        .font(Font::MONOSPACE)
+        .font(Font::with_name("Caskaydia Mono Nerd Font"))
         .color(Color::from_rgb(0.5, 0.5, 0.55));
 
     let close_button = button(
         text("Close")
             .size(13)
-            .font(Font::MONOSPACE)
+            .font(Font::with_name("Caskaydia Mono Nerd Font"))
             .color(Color::from_rgb(0.85, 0.85, 0.9)),
     )
     .padding(Padding::from([4, 12]))
