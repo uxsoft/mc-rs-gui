@@ -1248,9 +1248,17 @@ impl App {
         match key {
             keyboard::Key::Named(named) => match named {
                 keyboard::key::Named::ArrowUp => {
+                    if modifiers.shift() {
+                        let cursor = self.active_panel_state().cursor;
+                        self.panel_mut(side).toggle_select(cursor);
+                    }
                     return self.update(Message::Panel(side, PanelMessage::CursorMove(-1)));
                 }
                 keyboard::key::Named::ArrowDown => {
+                    if modifiers.shift() {
+                        let cursor = self.active_panel_state().cursor;
+                        self.panel_mut(side).toggle_select(cursor);
+                    }
                     return self.update(Message::Panel(side, PanelMessage::CursorMove(1)));
                 }
                 keyboard::key::Named::PageUp => {
