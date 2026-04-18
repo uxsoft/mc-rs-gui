@@ -5,6 +5,8 @@ use crate::app::Message;
 
 use super::{DialogMessage, dialog_button};
 
+pub const INPUT_DIALOG_ID: &str = "dialog-input";
+
 #[derive(Debug, Clone)]
 pub struct InputDialog {
     pub title: String,
@@ -25,6 +27,7 @@ pub fn input_view<'a>(dialog: &'a InputDialog) -> Element<'a, Message> {
         .color(Color::from_rgb(0.7, 0.7, 0.75));
 
     let input = text_input("", &dialog.value)
+        .id(INPUT_DIALOG_ID)
         .on_input(|s| Message::DialogResult(DialogMessage::InputChanged(s)))
         .on_submit(Message::DialogResult(DialogMessage::InputSubmit))
         .size(14)

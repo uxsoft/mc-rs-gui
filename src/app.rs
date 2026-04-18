@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use iced::keyboard;
-use iced::widget::{column, container, row, stack};
+use iced::widget::{column, container, row, stack, text_input};
 use iced::{Color, Element, Length, Subscription, Task};
 use tokio::io::AsyncReadExt;
 use tokio::io::AsyncWriteExt;
@@ -12,7 +12,7 @@ use crate::bookmarks::{Bookmark, BookmarkMessage, BookmarkStore};
 use crate::config::AppConfig;
 use crate::dialogs::chmod::ChmodDialog;
 use crate::dialogs::confirm::ConfirmDialog;
-use crate::dialogs::input::InputDialog;
+use crate::dialogs::input::{self, InputDialog};
 use crate::dialogs::progress::ProgressDialog;
 use crate::dialogs::{self, DialogKind, DialogMessage};
 use crate::editor::{self, EditorMessage, EditorState};
@@ -403,6 +403,7 @@ impl App {
                     value: current_filter,
                     on_submit: |_| Message::DialogResult(DialogMessage::InputSubmit),
                 }));
+                return text_input::focus(input::INPUT_DIALOG_ID);
             }
 
             Message::Chmod => {
@@ -625,7 +626,7 @@ impl App {
             value: String::new(),
             on_submit: |_| Message::DialogResult(DialogMessage::InputSubmit),
         }));
-        Task::none()
+        text_input::focus(input::INPUT_DIALOG_ID)
     }
 
     fn initiate_rename(&mut self) -> Task<Message> {
@@ -637,6 +638,7 @@ impl App {
                 value: entry.name.clone(),
                 on_submit: |_| Message::DialogResult(DialogMessage::InputSubmit),
             }));
+            return text_input::focus(input::INPUT_DIALOG_ID);
         }
         Task::none()
     }
