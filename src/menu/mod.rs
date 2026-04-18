@@ -1,7 +1,10 @@
+pub mod menu_bar;
+
 use iced::widget::{Space, button, container, row, text};
 use iced::{Color, Element, Font, Length, Padding};
 
 use crate::app::Message;
+use crate::menu::menu_bar::MenuId;
 
 struct FnKeyDef {
     key: &'static str,
@@ -54,7 +57,7 @@ pub fn fn_key_bar<'a>() -> Element<'a, Message> {
         FnKeyDef {
             key: "9",
             label: "Menu",
-            message: None,
+            message: Some(Message::MenuOpen(MenuId::Left)),
         },
         FnKeyDef {
             key: "10",
@@ -81,15 +84,22 @@ pub fn fn_key_bar<'a>() -> Element<'a, Message> {
         let btn = if let Some(ref msg) = def.message {
             button(content)
                 .padding(Padding::from([2, 6]))
-                .style(|_theme, _status| button::Style {
-                    background: Some(iced::Background::Color(Color::from_rgb(0.15, 0.15, 0.2))),
-                    text_color: Color::WHITE,
-                    border: iced::Border {
-                        color: Color::from_rgb(0.25, 0.25, 0.3),
-                        width: 1.0,
-                        radius: 3.0.into(),
-                    },
-                    ..Default::default()
+                .style(|_theme, status| {
+                    let bg = match status {
+                        button::Status::Pressed => Color::from_rgb(0.22, 0.22, 0.32),
+                        button::Status::Hovered => Color::from_rgb(0.19, 0.19, 0.27),
+                        _ => Color::from_rgb(0.15, 0.15, 0.2),
+                    };
+                    button::Style {
+                        background: Some(iced::Background::Color(bg)),
+                        text_color: Color::WHITE,
+                        border: iced::Border {
+                            color: Color::from_rgb(0.25, 0.25, 0.3),
+                            width: 1.0,
+                            radius: 3.0.into(),
+                        },
+                        ..Default::default()
+                    }
                 })
                 .on_press(msg.clone())
         } else {
@@ -108,7 +118,7 @@ pub fn fn_key_bar<'a>() -> Element<'a, Message> {
         };
 
         items.push(btn.into());
-        items.push(Space::with_width(Length::Fixed(2.0)).into());
+        items.push(Space::new().width(Length::Fixed(2.0)).into());
     }
 
     container(iced::widget::Row::with_children(items).align_y(iced::Alignment::Center))

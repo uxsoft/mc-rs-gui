@@ -30,12 +30,11 @@ impl AppConfig {
             .join("mc-rs")
             .join("config.json");
 
-        if config_path.exists() {
-            if let Ok(data) = std::fs::read_to_string(&config_path) {
-                if let Ok(config) = serde_json::from_str(&data) {
-                    return config;
-                }
-            }
+        if config_path.exists()
+            && let Ok(data) = std::fs::read_to_string(&config_path)
+            && let Ok(config) = serde_json::from_str(&data)
+        {
+            return config;
         }
         Self::default()
     }

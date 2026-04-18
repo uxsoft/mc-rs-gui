@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::io::{Cursor, Read as StdRead};
 use std::path::PathBuf;
 use std::time::SystemTime;
@@ -55,7 +54,7 @@ fn read_zip_entries(archive_path: &str) -> Result<Vec<(String, ArchiveEntry)>, V
                 size,
                 modified: entry
                     .last_modified()
-                    .and_then(|dt| dt.to_time().ok())
+                    .and_then(|dt| time::OffsetDateTime::try_from(dt).ok())
                     .map(|t| {
                         SystemTime::UNIX_EPOCH
                             + std::time::Duration::from_secs(t.unix_timestamp().max(0) as u64)

@@ -27,7 +27,7 @@ impl FtpVfsProvider {
         password: &str,
     ) -> Result<(), VfsError> {
         let addr = format!("{host}:{port}");
-        let host = host.to_string();
+        let _host = host.to_string();
         let user = user.to_string();
         let password = password.to_string();
 

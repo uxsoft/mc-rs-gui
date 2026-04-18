@@ -1,10 +1,8 @@
 pub mod sort;
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashSet};
 
-use iced::widget::{
-    Column, button, column, container, horizontal_rule, row, scrollable, text,
-};
+use iced::widget::{Column, button, column, container, row, rule, scrollable, text};
 use iced::{Color, Element, Font, Length, Padding};
 
 use crate::app::{Message, PanelSide};
@@ -45,6 +43,8 @@ pub struct PanelState {
     pub error: Option<String>,
     pub path_editing: bool,
     pub path_input_value: String,
+    pub filter: String,
+    pub highlighted: HashSet<usize>,
 }
 
 impl PanelState {
@@ -60,6 +60,8 @@ impl PanelState {
             error: None,
             path_editing: false,
             path_input_value: String::new(),
+            filter: String::new(),
+            highlighted: HashSet::new(),
         }
     }
 
@@ -68,7 +70,9 @@ impl PanelState {
 
         // Insert ".." entry at the top if we can navigate up
         // For VFS roots (zip/tar/ftp/sftp), exit to the parent filesystem
-        let parent_path = self.current_path.parent()
+        let parent_path = self
+            .current_path
+            .parent()
             .or_else(|| self.current_path.exit_parent());
         if let Some(parent) = parent_path {
             entries.insert(
@@ -216,16 +220,21 @@ pub fn panel_view<'a>(
         for (i, entry) in state.entries.iter().enumerate() {
             let is_cursor = i == state.cursor;
             let is_selected = state.selected.contains(&i);
+            let is_highlighted = state.highlighted.contains(&i);
 
-            let name_color = match entry.entry_type {
-                EntryType::Directory => Color::from_rgb(0.4, 0.7, 1.0),
-                EntryType::Symlink => Color::from_rgb(0.5, 0.9, 0.7),
-                EntryType::Special => Color::from_rgb(0.9, 0.6, 0.3),
-                EntryType::File => {
-                    if is_selected {
-                        Color::from_rgb(1.0, 0.9, 0.3)
-                    } else {
-                        Color::from_rgb(0.85, 0.85, 0.9)
+            let name_color = if is_highlighted {
+                Color::from_rgb(1.0, 0.8, 0.3)
+            } else {
+                match entry.entry_type {
+                    EntryType::Directory => Color::from_rgb(0.4, 0.7, 1.0),
+                    EntryType::Symlink => Color::from_rgb(0.5, 0.9, 0.7),
+                    EntryType::Special => Color::from_rgb(0.9, 0.6, 0.3),
+                    EntryType::File => {
+                        if is_selected {
+                            Color::from_rgb(1.0, 0.9, 0.3)
+                        } else {
+                            Color::from_rgb(0.85, 0.85, 0.9)
+                        }
                     }
                 }
             };
@@ -273,6 +282,7 @@ pub fn panel_view<'a>(
                 text_color: Color::WHITE,
                 border: iced::Border::default(),
                 shadow: iced::Shadow::default(),
+                ..Default::default()
             })
             .on_press(Message::Panel(side, PanelMessage::Select(i)));
 
@@ -294,7 +304,9 @@ pub fn panel_view<'a>(
         .map(|e| e.size)
         .sum();
 
-    let status_text = if state.selected.is_empty() {
+    let status_text = if !state.filter.is_empty() {
+        format!("[Filter: {}] {} items", state.filter, state.entries.len())
+    } else if state.selected.is_empty() {
         format!("{} items", state.entries.len())
     } else {
         format!(
@@ -316,7 +328,7 @@ pub fn panel_view<'a>(
     // Assemble panel
     let panel_content = column![
         path_bar,
-        horizontal_rule(1),
+        rule::horizontal(1),
         header_row,
         file_list,
         status_bar,

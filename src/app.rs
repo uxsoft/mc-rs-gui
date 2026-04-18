@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use iced::keyboard;
-use iced::widget::{column, container, row, stack};
+use iced::widget::{column, container, operation, row, stack};
 use iced::{Color, Element, Length, Subscription, Task};
 use tokio::io::AsyncReadExt;
 use tokio::io::AsyncWriteExt;
@@ -10,12 +10,14 @@ use tokio::sync::mpsc;
 use crate::bookmarks::storage::{load_bookmarks, save_bookmarks};
 use crate::bookmarks::{Bookmark, BookmarkMessage, BookmarkStore};
 use crate::config::AppConfig;
+use crate::dialogs::chmod::ChmodDialog;
 use crate::dialogs::confirm::ConfirmDialog;
-use crate::dialogs::input::InputDialog;
+use crate::dialogs::input::{self, InputDialog};
 use crate::dialogs::progress::ProgressDialog;
 use crate::dialogs::{self, DialogKind, DialogMessage};
 use crate::editor::{self, EditorMessage, EditorState};
 use crate::menu;
+use crate::menu::menu_bar::{MenuBarState, MenuId};
 use crate::operations::executor::execute_operation;
 use crate::operations::{OperationKind, OperationProgress};
 use crate::panel::{self, PanelMessage, PanelState};
@@ -80,6 +82,22 @@ pub enum Message {
     // App
     ToggleHidden,
     Quit,
+
+    // Menu bar
+    MenuOpen(MenuId),
+    MenuClose,
+    MenuAction(Box<Message>),
+
+    // New trivial actions
+    SwapPanels,
+    ToggleConfirmDelete,
+    ToggleConfirmOverwrite,
+    SaveConfig,
+
+    // Filter, Chmod, Compare
+    OpenFilter(PanelSide),
+    Chmod,
+    CompareDirectories,
 }
 
 pub struct App {
@@ -94,6 +112,8 @@ pub struct App {
     pub search: Option<SearchState>,
     pub bookmarks: BookmarkStore,
     pub config: AppConfig,
+    pub menu_bar: MenuBarState,
+    pub pending_filter_side: Option<PanelSide>,
 }
 
 impl App {
@@ -123,6 +143,8 @@ impl App {
             search: None,
             bookmarks: bookmark_store,
             config,
+            menu_bar: MenuBarState::default(),
+            pending_filter_side: None,
         };
 
         let vfs_l = vfs.clone();
@@ -162,6 +184,10 @@ impl App {
                         if !show_hidden {
                             entries.retain(|e| !e.name.starts_with('.'));
                         }
+                        if !panel.filter.is_empty() {
+                            let filter = panel.filter.clone();
+                            entries.retain(|e| e.name == ".." || glob_match(&filter, &e.name));
+                        }
                         panel.set_entries(entries);
                     }
                     Err(err) => panel.set_error(err),
@@ -192,6 +218,27 @@ impl App {
                         return Task::none();
                     }
                     return Task::none();
+                }
+                // Menu bar keyboard navigation
+                if self.menu_bar.open_menu.is_some() {
+                    match key {
+                        keyboard::Key::Named(keyboard::key::Named::Escape) => {
+                            self.menu_bar.open_menu = None;
+                            return Task::none();
+                        }
+                        keyboard::Key::Named(keyboard::key::Named::ArrowLeft) => {
+                            self.menu_bar.open_menu = Some(self.menu_bar.open_menu.unwrap().prev());
+                            return Task::none();
+                        }
+                        keyboard::Key::Named(keyboard::key::Named::ArrowRight) => {
+                            self.menu_bar.open_menu = Some(self.menu_bar.open_menu.unwrap().next());
+                            return Task::none();
+                        }
+                        _ => {
+                            self.menu_bar.open_menu = None;
+                            return self.handle_key(key, modifiers);
+                        }
+                    }
                 }
                 return self.handle_key(key, modifiers);
             }
@@ -310,6 +357,60 @@ impl App {
             Message::Quit => {
                 return iced::exit();
             }
+
+            // Menu bar
+            Message::MenuOpen(id) => {
+                if self.menu_bar.open_menu == Some(id) {
+                    self.menu_bar.open_menu = None;
+                } else {
+                    self.menu_bar.open_menu = Some(id);
+                }
+            }
+            Message::MenuClose => {
+                self.menu_bar.open_menu = None;
+            }
+            Message::MenuAction(inner) => {
+                self.menu_bar.open_menu = None;
+                return self.update(*inner);
+            }
+
+            // Trivial new actions
+            Message::SwapPanels => {
+                std::mem::swap(&mut self.left_panel, &mut self.right_panel);
+                self.active_panel = match self.active_panel {
+                    PanelSide::Left => PanelSide::Right,
+                    PanelSide::Right => PanelSide::Left,
+                };
+            }
+            Message::ToggleConfirmDelete => {
+                self.config.confirm_delete = !self.config.confirm_delete;
+            }
+            Message::ToggleConfirmOverwrite => {
+                self.config.confirm_overwrite = !self.config.confirm_overwrite;
+            }
+            Message::SaveConfig => {
+                self.config.save();
+            }
+
+            Message::OpenFilter(side) => {
+                let current_filter = self.panel_mut(side).filter.clone();
+                self.pending_filter_side = Some(side);
+                self.dialog = Some(DialogKind::Input(InputDialog {
+                    title: "Filter".into(),
+                    label: "Pattern (e.g. *.rs, empty to clear):".into(),
+                    value: current_filter,
+                    on_submit: |_| Message::DialogResult(DialogMessage::InputSubmit),
+                }));
+                return operation::focus(input::INPUT_DIALOG_ID);
+            }
+
+            Message::Chmod => {
+                return self.initiate_chmod();
+            }
+
+            Message::CompareDirectories => {
+                self.compare_directories();
+            }
         }
         Task::none()
     }
@@ -325,6 +426,7 @@ impl App {
             return editor::editor_view(editor);
         }
 
+        let top_menu = menu::menu_bar::menu_bar_view(&self.menu_bar);
         let left = panel::panel_view(
             &self.left_panel,
             PanelSide::Left,
@@ -338,7 +440,7 @@ impl App {
 
         let panels = row![left, right].spacing(2).height(Length::Fill);
         let fn_bar = menu::fn_key_bar();
-        let main_content = column![panels, fn_bar];
+        let main_content = column![top_menu, panels, fn_bar];
 
         let base: Element<'_, Message> = container(main_content)
             .width(Length::Fill)
@@ -348,6 +450,12 @@ impl App {
                 ..Default::default()
             })
             .into();
+
+        // Menu dropdown overlay (highest priority)
+        if let Some(dropdown) = menu::menu_bar::menu_dropdown_overlay(&self.menu_bar, &self.config)
+        {
+            return stack![base, dropdown].into();
+        }
 
         // Overlay search dialog
         if let Some(ref search_state) = self.search {
@@ -363,7 +471,15 @@ impl App {
     }
 
     pub fn subscription(&self) -> Subscription<Message> {
-        keyboard::on_key_press(|key, modifiers| Some(Message::KeyPressed(key, modifiers)))
+        keyboard::listen().map(|event| match event {
+            keyboard::Event::KeyPressed { key, modifiers, .. } => {
+                Message::KeyPressed(key, modifiers)
+            }
+            _ => Message::KeyPressed(
+                keyboard::Key::Named(keyboard::key::Named::Alt),
+                keyboard::Modifiers::empty(),
+            ),
+        })
     }
 
     pub fn theme(&self) -> iced::Theme {
@@ -413,27 +529,27 @@ impl App {
     }
 
     fn try_enter_archive(&mut self, side: PanelSide, entry: &VfsEntry) -> Task<Message> {
-        if entry.is_file() {
-            if let Some(archive_path) = entry.path.as_local_path() {
-                let p = archive_path.to_string_lossy();
-                let is_archive = p.ends_with(".zip")
-                    || p.ends_with(".jar")
-                    || p.ends_with(".tar")
-                    || p.ends_with(".tar.gz")
-                    || p.ends_with(".tgz");
-                if is_archive {
-                    let scheme = if p.ends_with(".zip") || p.ends_with(".jar") {
-                        "zip"
-                    } else {
-                        "tar"
-                    };
-                    let vfs_path = VfsPath {
-                        scheme: scheme.into(),
-                        authority: Some(p.to_string()),
-                        path: "/".into(),
-                    };
-                    return self.navigate_to(side, vfs_path);
-                }
+        if entry.is_file()
+            && let Some(archive_path) = entry.path.as_local_path()
+        {
+            let p = archive_path.to_string_lossy();
+            let is_archive = p.ends_with(".zip")
+                || p.ends_with(".jar")
+                || p.ends_with(".tar")
+                || p.ends_with(".tar.gz")
+                || p.ends_with(".tgz");
+            if is_archive {
+                let scheme = if p.ends_with(".zip") || p.ends_with(".jar") {
+                    "zip"
+                } else {
+                    "tar"
+                };
+                let vfs_path = VfsPath {
+                    scheme: scheme.into(),
+                    authority: Some(p.to_string()),
+                    path: "/".into(),
+                };
+                return self.navigate_to(side, vfs_path);
             }
         }
         Task::none()
@@ -516,7 +632,7 @@ impl App {
             value: String::new(),
             on_submit: |_| Message::DialogResult(DialogMessage::InputSubmit),
         }));
-        Task::none()
+        operation::focus(input::INPUT_DIALOG_ID)
     }
 
     fn initiate_rename(&mut self) -> Task<Message> {
@@ -528,8 +644,88 @@ impl App {
                 value: entry.name.clone(),
                 on_submit: |_| Message::DialogResult(DialogMessage::InputSubmit),
             }));
+            return operation::focus(input::INPUT_DIALOG_ID);
         }
         Task::none()
+    }
+
+    fn initiate_chmod(&mut self) -> Task<Message> {
+        let panel = self.active_panel_state();
+        if let Some(entry) = panel.current_entry() {
+            let mode = entry.permissions.unwrap_or(0o644);
+            self.dialog = Some(DialogKind::Chmod(ChmodDialog::new(
+                entry.path.clone(),
+                entry.name.clone(),
+                mode,
+            )));
+        }
+        Task::none()
+    }
+
+    fn compare_directories(&mut self) {
+        use std::collections::HashMap;
+
+        // If already highlighted, clear (toggle off)
+        if !self.left_panel.highlighted.is_empty() || !self.right_panel.highlighted.is_empty() {
+            self.left_panel.highlighted.clear();
+            self.right_panel.highlighted.clear();
+            return;
+        }
+
+        // Build name -> (size, modified) maps for each panel
+        let left_map: HashMap<&str, (u64, Option<std::time::SystemTime>)> = self
+            .left_panel
+            .entries
+            .iter()
+            .filter(|e| e.name != "..")
+            .map(|e| (e.name.as_str(), (e.size, e.modified)))
+            .collect();
+
+        let right_map: HashMap<&str, (u64, Option<std::time::SystemTime>)> = self
+            .right_panel
+            .entries
+            .iter()
+            .filter(|e| e.name != "..")
+            .map(|e| (e.name.as_str(), (e.size, e.modified)))
+            .collect();
+
+        // Highlight entries that differ
+        let mut left_hl = std::collections::HashSet::new();
+        for (i, entry) in self.left_panel.entries.iter().enumerate() {
+            if entry.name == ".." {
+                continue;
+            }
+            match right_map.get(entry.name.as_str()) {
+                None => {
+                    left_hl.insert(i);
+                }
+                Some(&(size, modified)) => {
+                    if entry.size != size || entry.modified != modified {
+                        left_hl.insert(i);
+                    }
+                }
+            }
+        }
+
+        let mut right_hl = std::collections::HashSet::new();
+        for (i, entry) in self.right_panel.entries.iter().enumerate() {
+            if entry.name == ".." {
+                continue;
+            }
+            match left_map.get(entry.name.as_str()) {
+                None => {
+                    right_hl.insert(i);
+                }
+                Some(&(size, modified)) => {
+                    if entry.size != size || entry.modified != modified {
+                        right_hl.insert(i);
+                    }
+                }
+            }
+        }
+
+        self.left_panel.highlighted = left_hl;
+        self.right_panel.highlighted = right_hl;
     }
 
     fn start_operation(&mut self, op: OperationKind) -> Task<Message> {
@@ -593,7 +789,42 @@ impl App {
                                 Message::OperationComplete,
                             );
                         }
+                    } else if title == "Filter"
+                        && let Some(side) = self.pending_filter_side.take()
+                    {
+                        self.panel_mut(side).filter = value;
+                        return self.refresh_panel(side);
                     }
+                }
+            }
+            DialogMessage::ChmodToggleBit(bit) => {
+                if let Some(DialogKind::Chmod(ref mut d)) = self.dialog {
+                    d.mode ^= bit;
+                    d.octal_input = format!("{:04o}", d.mode & 0o7777);
+                }
+            }
+            DialogMessage::ChmodOctalChanged(value) => {
+                if let Some(DialogKind::Chmod(ref mut d)) = self.dialog {
+                    d.octal_input = value.clone();
+                    if let Ok(mode) = u32::from_str_radix(&value, 8) {
+                        d.mode = mode & 0o7777;
+                    }
+                }
+            }
+            DialogMessage::ChmodApply => {
+                if let Some(DialogKind::Chmod(ref d)) = self.dialog {
+                    let path = d.path.clone();
+                    let mode = d.mode;
+                    let vfs = self.vfs.clone();
+                    self.dialog = None;
+                    return Task::perform(
+                        async move {
+                            vfs.set_permissions(&path, mode)
+                                .await
+                                .map_err(|e| e.to_string())
+                        },
+                        Message::OperationComplete,
+                    );
                 }
             }
             _ => {}
@@ -605,24 +836,24 @@ impl App {
 
     fn open_viewer(&mut self) -> Task<Message> {
         let panel = self.active_panel_state();
-        if let Some(entry) = panel.current_entry() {
-            if entry.is_file() {
-                let name = entry.name.clone();
-                let path = entry.path.clone();
-                let vfs = self.vfs.clone();
-                return Task::perform(
-                    async move {
-                        let mut reader = vfs.open_read(&path).await.map_err(|e| e.to_string())?;
-                        let mut buf = Vec::new();
-                        reader
-                            .read_to_end(&mut buf)
-                            .await
-                            .map_err(|e| e.to_string())?;
-                        Ok(buf)
-                    },
-                    move |result| Message::FileLoaded(name.clone(), result),
-                );
-            }
+        if let Some(entry) = panel.current_entry()
+            && entry.is_file()
+        {
+            let name = entry.name.clone();
+            let path = entry.path.clone();
+            let vfs = self.vfs.clone();
+            return Task::perform(
+                async move {
+                    let mut reader = vfs.open_read(&path).await.map_err(|e| e.to_string())?;
+                    let mut buf = Vec::new();
+                    reader
+                        .read_to_end(&mut buf)
+                        .await
+                        .map_err(|e| e.to_string())?;
+                    Ok(buf)
+                },
+                move |result| Message::FileLoaded(name.clone(), result),
+            );
         }
         Task::none()
     }
@@ -678,8 +909,8 @@ impl App {
         key: keyboard::Key,
         _modifiers: keyboard::Modifiers,
     ) -> Task<Message> {
-        match key {
-            keyboard::Key::Named(named) => match named {
+        if let keyboard::Key::Named(named) = key {
+            match named {
                 keyboard::key::Named::Escape | keyboard::key::Named::F3 => {
                     return self.update(Message::Viewer(ViewerMessage::Close));
                 }
@@ -710,8 +941,7 @@ impl App {
                     return self.update(Message::Viewer(ViewerMessage::SwitchMode(new_mode)));
                 }
                 _ => {}
-            },
-            _ => {}
+            }
         }
         Task::none()
     }
@@ -720,27 +950,25 @@ impl App {
 
     fn open_editor(&mut self) -> Task<Message> {
         let panel = self.active_panel_state();
-        if let Some(entry) = panel.current_entry() {
-            if entry.is_file() {
-                let name = entry.name.clone();
-                let file_path = entry.path.clone();
-                let vfs = self.vfs.clone();
-                let fp = file_path.clone();
-                return Task::perform(
-                    async move {
-                        let mut reader = vfs.open_read(&fp).await.map_err(|e| e.to_string())?;
-                        let mut buf = Vec::new();
-                        reader
-                            .read_to_end(&mut buf)
-                            .await
-                            .map_err(|e| e.to_string())?;
-                        Ok(buf)
-                    },
-                    move |result| {
-                        Message::FileLoadedForEdit(name.clone(), file_path.clone(), result)
-                    },
-                );
-            }
+        if let Some(entry) = panel.current_entry()
+            && entry.is_file()
+        {
+            let name = entry.name.clone();
+            let file_path = entry.path.clone();
+            let vfs = self.vfs.clone();
+            let fp = file_path.clone();
+            return Task::perform(
+                async move {
+                    let mut reader = vfs.open_read(&fp).await.map_err(|e| e.to_string())?;
+                    let mut buf = Vec::new();
+                    reader
+                        .read_to_end(&mut buf)
+                        .await
+                        .map_err(|e| e.to_string())?;
+                    Ok(buf)
+                },
+                move |result| Message::FileLoadedForEdit(name.clone(), file_path.clone(), result),
+            );
         }
         Task::none()
     }
@@ -817,10 +1045,8 @@ impl App {
                 }
                 _ => {}
             },
-            keyboard::Key::Character(ref c) => {
-                if modifiers.command() && c.as_str() == "s" {
-                    return self.update(Message::Editor(EditorMessage::Save));
-                }
+            keyboard::Key::Character(ref c) if modifiers.command() && c.as_str() == "s" => {
+                return self.update(Message::Editor(EditorMessage::Save));
             }
             _ => {}
         }
@@ -855,7 +1081,7 @@ impl App {
                     let content = s.content_pattern.clone();
                     let vfs = self.vfs.clone();
 
-                    let (tx, mut rx) = mpsc::unbounded_channel();
+                    let (tx, _rx) = mpsc::unbounded_channel();
 
                     // Spawn the search task
                     tokio::spawn(async move {
@@ -931,7 +1157,9 @@ impl App {
             }
             PanelMessage::GoUp => {
                 let panel = self.panel_mut(side);
-                let target = panel.current_path.parent()
+                let target = panel
+                    .current_path
+                    .parent()
                     .or_else(|| panel.current_path.exit_parent());
                 if let Some(parent) = target {
                     return self.navigate_to(side, parent);
@@ -1025,9 +1253,17 @@ impl App {
         match key {
             keyboard::Key::Named(named) => match named {
                 keyboard::key::Named::ArrowUp => {
+                    if modifiers.shift() {
+                        let cursor = self.active_panel_state().cursor;
+                        self.panel_mut(side).toggle_select(cursor);
+                    }
                     return self.update(Message::Panel(side, PanelMessage::CursorMove(-1)));
                 }
                 keyboard::key::Named::ArrowDown => {
+                    if modifiers.shift() {
+                        let cursor = self.active_panel_state().cursor;
+                        self.panel_mut(side).toggle_select(cursor);
+                    }
                     return self.update(Message::Panel(side, PanelMessage::CursorMove(1)));
                 }
                 keyboard::key::Named::PageUp => {
@@ -1067,22 +1303,52 @@ impl App {
                 }
                 keyboard::key::Named::F7 => return self.update(Message::Mkdir),
                 keyboard::key::Named::F8 => return self.update(Message::DeleteSelected),
+                keyboard::key::Named::F9 => {
+                    return self.update(Message::MenuOpen(MenuId::Left));
+                }
                 keyboard::key::Named::F10 => return self.update(Message::Quit),
                 _ => {}
             },
-            keyboard::Key::Character(ref c) => {
-                if modifiers.command() {
-                    match c.as_str() {
-                        "r" => return self.update(Message::Panel(side, PanelMessage::Refresh)),
-                        "f" => return self.update(Message::OpenSearch),
-                        "h" => return self.update(Message::ToggleHidden),
-                        "d" => return self.update(Message::Bookmark(BookmarkMessage::Add)),
-                        _ => {}
-                    }
-                }
-            }
+            keyboard::Key::Character(ref c) if modifiers.command() => match c.as_str() {
+                "r" => return self.update(Message::Panel(side, PanelMessage::Refresh)),
+                "f" => return self.update(Message::OpenSearch),
+                "h" => return self.update(Message::ToggleHidden),
+                "d" => return self.update(Message::Bookmark(BookmarkMessage::Add)),
+                _ => {}
+            },
             _ => {}
         }
         Task::none()
     }
+}
+
+/// Simple glob matching: supports `*` as wildcard for any characters.
+/// e.g. `*.rs` matches `main.rs`, `foo*bar` matches `fooXYZbar`.
+fn glob_match(pattern: &str, name: &str) -> bool {
+    let pattern = pattern.to_lowercase();
+    let name = name.to_lowercase();
+    let parts: Vec<&str> = pattern.split('*').collect();
+    if parts.len() == 1 {
+        // No wildcard: substring match
+        return name.contains(&pattern);
+    }
+    let mut pos = 0;
+    for (i, part) in parts.iter().enumerate() {
+        if part.is_empty() {
+            continue;
+        }
+        if let Some(found) = name[pos..].find(part) {
+            if i == 0 && found != 0 {
+                return false; // must match from start if pattern doesn't start with *
+            }
+            pos += found + part.len();
+        } else {
+            return false;
+        }
+    }
+    // If pattern doesn't end with *, the name must end at pos
+    if !pattern.ends_with('*') {
+        return pos == name.len();
+    }
+    true
 }

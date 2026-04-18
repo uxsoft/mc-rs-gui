@@ -137,21 +137,21 @@ pub fn search_view<'a>(state: &'a SearchState) -> Element<'a, Message> {
     .padding(Padding::from([4, 12]))
     .on_press(Message::Search(SearchMessage::Close));
 
-    let buttons = row![search_button, Space::with_width(8), close_button];
+    let buttons = row![search_button, Space::new().width(8), close_button];
 
     let dialog_content = column![
         title,
-        Space::with_height(12),
+        Space::new().height(12),
         dir_input,
-        Space::with_height(8),
+        Space::new().height(8),
         pattern_input,
-        Space::with_height(8),
+        Space::new().height(8),
         content_input,
-        Space::with_height(12),
+        Space::new().height(12),
         buttons,
-        Space::with_height(12),
+        Space::new().height(12),
         results_list,
-        Space::with_height(4),
+        Space::new().height(4),
         status,
     ];
 

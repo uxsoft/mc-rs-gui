@@ -1,9 +1,11 @@
 use iced::widget::{Space, column, row, text, text_input};
-use iced::{Color, Element, Font, Length};
+use iced::{Color, Element, Font};
 
 use crate::app::Message;
 
 use super::{DialogMessage, dialog_button};
+
+pub const INPUT_DIALOG_ID: &str = "dialog-input";
 
 #[derive(Debug, Clone)]
 pub struct InputDialog {
@@ -25,6 +27,7 @@ pub fn input_view<'a>(dialog: &'a InputDialog) -> Element<'a, Message> {
         .color(Color::from_rgb(0.7, 0.7, 0.75));
 
     let input = text_input("", &dialog.value)
+        .id(INPUT_DIALOG_ID)
         .on_input(|s| Message::DialogResult(DialogMessage::InputChanged(s)))
         .on_submit(Message::DialogResult(DialogMessage::InputSubmit))
         .size(14)
@@ -36,7 +39,7 @@ pub fn input_view<'a>(dialog: &'a InputDialog) -> Element<'a, Message> {
             Message::DialogResult(DialogMessage::InputSubmit),
             true
         ),
-        Space::with_width(8),
+        Space::new().width(8),
         dialog_button(
             "Cancel",
             Message::DialogResult(DialogMessage::Cancel),
@@ -46,11 +49,11 @@ pub fn input_view<'a>(dialog: &'a InputDialog) -> Element<'a, Message> {
 
     column![
         title,
-        Space::with_height(8),
+        Space::new().height(8),
         label,
-        Space::with_height(4),
+        Space::new().height(4),
         input,
-        Space::with_height(16),
+        Space::new().height(16),
         buttons,
     ]
     .into()

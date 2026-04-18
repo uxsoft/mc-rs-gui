@@ -53,7 +53,7 @@ impl ViewerState {
     pub fn total_lines(&self) -> usize {
         match self.mode {
             ViewMode::Text => self.content.iter().filter(|&&b| b == b'\n').count().max(1),
-            ViewMode::Hex => (self.content.len() + 15) / 16,
+            ViewMode::Hex => self.content.len().div_ceil(16),
         }
     }
 
@@ -79,12 +79,12 @@ pub fn viewer_view<'a>(state: &'a ViewerState) -> Element<'a, Message> {
             .size(14)
             .font(Font::with_name("Caskaydia Mono Nerd Font"))
             .color(Color::from_rgb(0.8, 0.85, 0.95)),
-        Space::with_width(Length::Fill),
+        Space::new().width(Length::Fill),
         text(format!("Mode: {mode_label}"))
             .size(12)
             .font(Font::with_name("Caskaydia Mono Nerd Font"))
             .color(Color::from_rgb(0.6, 0.6, 0.65)),
-        Space::with_width(8),
+        Space::new().width(8),
         text(format!("Line {}", state.offset + 1))
             .size(12)
             .font(Font::with_name("Caskaydia Mono Nerd Font"))
@@ -101,7 +101,7 @@ pub fn viewer_view<'a>(state: &'a ViewerState) -> Element<'a, Message> {
     // Footer
     let footer = row![
         viewer_button("F3 Quit", Message::Viewer(ViewerMessage::Close)),
-        Space::with_width(4),
+        Space::new().width(4),
         viewer_button(
             "F4 Hex",
             Message::Viewer(ViewerMessage::SwitchMode(if state.mode == ViewMode::Text {
@@ -110,7 +110,7 @@ pub fn viewer_view<'a>(state: &'a ViewerState) -> Element<'a, Message> {
                 ViewMode::Text
             }))
         ),
-        Space::with_width(4),
+        Space::new().width(4),
         viewer_button("F7 Search", Message::Viewer(ViewerMessage::SearchOpen)),
     ]
     .padding(Padding::from([4, 8]));

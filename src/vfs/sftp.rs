@@ -1,11 +1,9 @@
-use std::io::Cursor;
-use std::path::PathBuf;
 use std::sync::Arc;
 
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::sync::Mutex;
 
-use super::{EntryType, VfsEntry, VfsError, VfsPath, VfsProvider};
+use super::{VfsEntry, VfsError, VfsPath, VfsProvider};
 
 /// SFTP VFS provider placeholder.
 ///
@@ -49,7 +47,7 @@ impl VfsProvider for SftpVfsProvider {
         Err(VfsError::Connection("SFTP: not connected".into()))
     }
 
-    async fn stat(&self, path: &VfsPath) -> Result<VfsEntry, VfsError> {
+    async fn stat(&self, _path: &VfsPath) -> Result<VfsEntry, VfsError> {
         Err(VfsError::Connection("SFTP: not connected".into()))
     }
 

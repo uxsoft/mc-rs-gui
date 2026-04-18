@@ -1,5 +1,5 @@
 use iced::widget::{Space, column, progress_bar, text};
-use iced::{Color, Element, Font, Length};
+use iced::{Color, Element, Font};
 
 use crate::app::Message;
 use crate::util::human_size::format_size;
@@ -35,7 +35,7 @@ pub fn progress_view<'a>(dialog: &'a ProgressDialog) -> Element<'a, Message> {
         .font(Font::with_name("Caskaydia Mono Nerd Font"))
         .color(Color::from_rgb(0.6, 0.6, 0.65));
 
-    let bar = progress_bar(0.0..=1.0, dialog.fraction()).height(8);
+    let bar = progress_bar(0.0..=1.0, dialog.fraction()).girth(8);
 
     let stats = text(format!(
         "{} / {} ({}/{})",
@@ -50,11 +50,11 @@ pub fn progress_view<'a>(dialog: &'a ProgressDialog) -> Element<'a, Message> {
 
     column![
         title,
-        Space::with_height(8),
+        Space::new().height(8),
         file_text,
-        Space::with_height(8),
+        Space::new().height(8),
         bar,
-        Space::with_height(4),
+        Space::new().height(4),
         stats,
     ]
     .into()
