@@ -27,8 +27,8 @@ struct ArchiveEntry {
 /// Parse an archive and return a directory tree
 fn read_zip_entries(archive_path: &str) -> Result<Vec<(String, ArchiveEntry)>, VfsError> {
     let file = std::fs::File::open(archive_path)?;
-    let mut archive = zip::ZipArchive::new(file)
-        .map_err(|e| VfsError::Other(format!("ZIP error: {e}")))?;
+    let mut archive =
+        zip::ZipArchive::new(file).map_err(|e| VfsError::Other(format!("ZIP error: {e}")))?;
 
     let mut entries = Vec::new();
     for i in 0..archive.len() {
@@ -58,9 +58,7 @@ fn read_zip_entries(archive_path: &str) -> Result<Vec<(String, ArchiveEntry)>, V
                     .and_then(|dt| dt.to_time().ok())
                     .map(|t| {
                         SystemTime::UNIX_EPOCH
-                            + std::time::Duration::from_secs(
-                                t.unix_timestamp().max(0) as u64,
-                            )
+                            + std::time::Duration::from_secs(t.unix_timestamp().max(0) as u64)
                     }),
             },
         ));
@@ -72,18 +70,20 @@ fn read_tar_entries(archive_path: &str) -> Result<Vec<(String, ArchiveEntry)>, V
     let file = std::fs::File::open(archive_path)?;
 
     // Detect compression
-    let reader: Box<dyn StdRead> = if archive_path.ends_with(".tar.gz")
-        || archive_path.ends_with(".tgz")
-    {
-        Box::new(flate2::read::GzDecoder::new(file))
-    } else {
-        Box::new(file)
-    };
+    let reader: Box<dyn StdRead> =
+        if archive_path.ends_with(".tar.gz") || archive_path.ends_with(".tgz") {
+            Box::new(flate2::read::GzDecoder::new(file))
+        } else {
+            Box::new(file)
+        };
 
     let mut archive = tar::Archive::new(reader);
     let mut entries = Vec::new();
 
-    for entry in archive.entries().map_err(|e| VfsError::Other(e.to_string()))? {
+    for entry in archive
+        .entries()
+        .map_err(|e| VfsError::Other(e.to_string()))?
+    {
         let entry = entry.map_err(|e| VfsError::Other(e.to_string()))?;
         let path = entry.path().map_err(|e| VfsError::Other(e.to_string()))?;
         let path_str = path.to_string_lossy().to_string();
@@ -94,9 +94,11 @@ fn read_tar_entries(archive_path: &str) -> Result<Vec<(String, ArchiveEntry)>, V
             _ => EntryType::File,
         };
 
-        let modified = entry.header().mtime().ok().map(|secs| {
-            SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(secs)
-        });
+        let modified = entry
+            .header()
+            .mtime()
+            .ok()
+            .map(|secs| SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(secs));
 
         entries.push((
             path_str.clone(),
@@ -212,16 +214,18 @@ fn extract_zip_file(archive_path: &str, file_path: &str) -> Result<Vec<u8>, VfsE
 
 fn extract_tar_file(archive_path: &str, file_path: &str) -> Result<Vec<u8>, VfsError> {
     let file = std::fs::File::open(archive_path)?;
-    let reader: Box<dyn StdRead> = if archive_path.ends_with(".tar.gz")
-        || archive_path.ends_with(".tgz")
-    {
-        Box::new(flate2::read::GzDecoder::new(file))
-    } else {
-        Box::new(file)
-    };
+    let reader: Box<dyn StdRead> =
+        if archive_path.ends_with(".tar.gz") || archive_path.ends_with(".tgz") {
+            Box::new(flate2::read::GzDecoder::new(file))
+        } else {
+            Box::new(file)
+        };
 
     let mut archive = tar::Archive::new(reader);
-    for entry in archive.entries().map_err(|e| VfsError::Other(e.to_string()))? {
+    for entry in archive
+        .entries()
+        .map_err(|e| VfsError::Other(e.to_string()))?
+    {
         let mut entry = entry.map_err(|e| VfsError::Other(e.to_string()))?;
         let path = entry.path().map_err(|e| VfsError::Other(e.to_string()))?;
         if path.to_string_lossy() == file_path {
@@ -247,11 +251,7 @@ fn is_tar(path: &str) -> bool {
 }
 
 fn archive_scheme(path: &str) -> &str {
-    if is_zip(path) {
-        "zip"
-    } else {
-        "tar"
-    }
+    if is_zip(path) { "zip" } else { "tar" }
 }
 
 #[async_trait::async_trait]
@@ -279,7 +279,12 @@ impl VfsProvider for ArchiveVfsProvider {
             } else {
                 read_tar_entries(&archive_path)?
             };
-            Ok(list_archive_dir(&all_entries, &dir_path, &archive_path, &scheme))
+            Ok(list_archive_dir(
+                &all_entries,
+                &dir_path,
+                &archive_path,
+                &scheme,
+            ))
         })
         .await
         .map_err(|e| VfsError::Other(e.to_string()))?

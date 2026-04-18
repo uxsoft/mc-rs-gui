@@ -1,4 +1,4 @@
-use iced::widget::{button, container, row, text, Space};
+use iced::widget::{Space, button, container, row, text};
 use iced::{Color, Element, Font, Length, Padding};
 
 use crate::app::Message;
@@ -11,16 +11,56 @@ struct FnKeyDef {
 
 pub fn fn_key_bar<'a>() -> Element<'a, Message> {
     let keys = [
-        FnKeyDef { key: "1", label: "Help", message: None },
-        FnKeyDef { key: "2", label: "Menu", message: None },
-        FnKeyDef { key: "3", label: "View", message: Some(Message::ViewFile) },
-        FnKeyDef { key: "4", label: "Edit", message: Some(Message::EditFile) },
-        FnKeyDef { key: "5", label: "Copy", message: Some(Message::CopySelected) },
-        FnKeyDef { key: "6", label: "Move", message: Some(Message::MoveSelected) },
-        FnKeyDef { key: "7", label: "Mkdir", message: Some(Message::Mkdir) },
-        FnKeyDef { key: "8", label: "Delete", message: Some(Message::DeleteSelected) },
-        FnKeyDef { key: "9", label: "Menu", message: None },
-        FnKeyDef { key: "10", label: "Quit", message: Some(Message::Quit) },
+        FnKeyDef {
+            key: "1",
+            label: "Help",
+            message: None,
+        },
+        FnKeyDef {
+            key: "2",
+            label: "Menu",
+            message: None,
+        },
+        FnKeyDef {
+            key: "3",
+            label: "View",
+            message: Some(Message::ViewFile),
+        },
+        FnKeyDef {
+            key: "4",
+            label: "Edit",
+            message: Some(Message::EditFile),
+        },
+        FnKeyDef {
+            key: "5",
+            label: "Copy",
+            message: Some(Message::CopySelected),
+        },
+        FnKeyDef {
+            key: "6",
+            label: "Move",
+            message: Some(Message::MoveSelected),
+        },
+        FnKeyDef {
+            key: "7",
+            label: "Mkdir",
+            message: Some(Message::Mkdir),
+        },
+        FnKeyDef {
+            key: "8",
+            label: "Delete",
+            message: Some(Message::DeleteSelected),
+        },
+        FnKeyDef {
+            key: "9",
+            label: "Menu",
+            message: None,
+        },
+        FnKeyDef {
+            key: "10",
+            label: "Quit",
+            message: Some(Message::Quit),
+        },
     ];
 
     let mut items: Vec<Element<'a, Message>> = Vec::new();
@@ -71,14 +111,12 @@ pub fn fn_key_bar<'a>() -> Element<'a, Message> {
         items.push(Space::with_width(Length::Fixed(2.0)).into());
     }
 
-    container(
-        iced::widget::Row::with_children(items).align_y(iced::Alignment::Center),
-    )
-    .width(Length::Fill)
-    .padding(Padding::from([4, 4]))
-    .style(|_theme| container::Style {
-        background: Some(iced::Background::Color(Color::from_rgb(0.08, 0.08, 0.1))),
-        ..Default::default()
-    })
-    .into()
+    container(iced::widget::Row::with_children(items).align_y(iced::Alignment::Center))
+        .width(Length::Fill)
+        .padding(Padding::from([4, 4]))
+        .style(|_theme| container::Style {
+            background: Some(iced::Background::Color(Color::from_rgb(0.08, 0.08, 0.1))),
+            ..Default::default()
+        })
+        .into()
 }

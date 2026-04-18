@@ -1,6 +1,6 @@
 pub mod finder;
 
-use iced::widget::{button, column, container, row, scrollable, text, text_input, Column, Space};
+use iced::widget::{Column, Space, button, column, container, row, scrollable, text, text_input};
 use iced::{Color, Element, Font, Length, Padding};
 
 use crate::app::Message;
@@ -84,9 +84,13 @@ pub fn search_view<'a>(state: &'a SearchState) -> Element<'a, Message> {
     .spacing(8);
 
     let search_button = button(
-        text(if state.searching { "Searching..." } else { "Search" })
-            .size(14)
-            .font(Font::MONOSPACE),
+        text(if state.searching {
+            "Searching..."
+        } else {
+            "Search"
+        })
+        .size(14)
+        .font(Font::MONOSPACE),
     )
     .padding(Padding::from([6, 16]))
     .on_press_maybe(if state.searching {
@@ -170,7 +174,9 @@ pub fn search_view<'a>(state: &'a SearchState) -> Element<'a, Message> {
     .center_x(Length::Fill)
     .center_y(Length::Fill)
     .style(|_theme| container::Style {
-        background: Some(iced::Background::Color(Color::from_rgba(0.0, 0.0, 0.0, 0.6))),
+        background: Some(iced::Background::Color(Color::from_rgba(
+            0.0, 0.0, 0.0, 0.6,
+        ))),
         ..Default::default()
     })
     .into()

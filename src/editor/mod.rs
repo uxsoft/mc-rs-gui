@@ -1,4 +1,4 @@
-use iced::widget::{button, column, container, row, text, text_editor, Space};
+use iced::widget::{Space, button, column, container, row, text, text_editor};
 use iced::{Color, Element, Font, Length, Padding};
 
 use crate::app::Message;

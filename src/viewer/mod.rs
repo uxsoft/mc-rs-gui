@@ -1,7 +1,7 @@
 pub mod hex_view;
 pub mod text_view;
 
-use iced::widget::{button, column, container, row, text, Space};
+use iced::widget::{Space, button, column, container, row, text};
 use iced::{Color, Element, Font, Length, Padding};
 
 use crate::app::Message;
@@ -52,12 +52,8 @@ impl ViewerState {
 
     pub fn total_lines(&self) -> usize {
         match self.mode {
-            ViewMode::Text => {
-                self.content.iter().filter(|&&b| b == b'\n').count().max(1)
-            }
-            ViewMode::Hex => {
-                (self.content.len() + 15) / 16
-            }
+            ViewMode::Text => self.content.iter().filter(|&&b| b == b'\n').count().max(1),
+            ViewMode::Hex => (self.content.len() + 15) / 16,
         }
     }
 
@@ -108,13 +104,11 @@ pub fn viewer_view<'a>(state: &'a ViewerState) -> Element<'a, Message> {
         Space::with_width(4),
         viewer_button(
             "F4 Hex",
-            Message::Viewer(ViewerMessage::SwitchMode(
-                if state.mode == ViewMode::Text {
-                    ViewMode::Hex
-                } else {
-                    ViewMode::Text
-                }
-            ))
+            Message::Viewer(ViewerMessage::SwitchMode(if state.mode == ViewMode::Text {
+                ViewMode::Hex
+            } else {
+                ViewMode::Text
+            }))
         ),
         Space::with_width(4),
         viewer_button("F7 Search", Message::Viewer(ViewerMessage::SearchOpen)),

@@ -19,12 +19,12 @@ use crate::menu;
 use crate::operations::executor::execute_operation;
 use crate::operations::{OperationKind, OperationProgress};
 use crate::panel::{self, PanelMessage, PanelState};
-use crate::search::{self, SearchMessage, SearchState};
 use crate::search::finder::search_files;
-use crate::viewer::{self, ViewMode, ViewerMessage, ViewerState};
+use crate::search::{self, SearchMessage, SearchState};
 use crate::vfs::archive::ArchiveVfsProvider;
 use crate::vfs::local::LocalVfsProvider;
 use crate::vfs::{VfsEntry, VfsPath, VfsRouter};
+use crate::viewer::{self, ViewMode, ViewerMessage, ViewerState};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PanelSide {
@@ -237,20 +237,18 @@ impl App {
             Message::ViewFile => {
                 return self.open_viewer();
             }
-            Message::FileLoaded(name, result) => {
-                match result {
-                    Ok(content) => {
-                        self.viewer = Some(ViewerState::new(name, content));
-                    }
-                    Err(err) => {
-                        self.dialog = Some(DialogKind::Confirm(ConfirmDialog {
-                            title: "Error".into(),
-                            message: format!("Cannot open file: {err}"),
-                            on_confirm: Box::new(Message::DialogResult(DialogMessage::Cancel)),
-                        }));
-                    }
+            Message::FileLoaded(name, result) => match result {
+                Ok(content) => {
+                    self.viewer = Some(ViewerState::new(name, content));
                 }
-            }
+                Err(err) => {
+                    self.dialog = Some(DialogKind::Confirm(ConfirmDialog {
+                        title: "Error".into(),
+                        message: format!("Cannot open file: {err}"),
+                        on_confirm: Box::new(Message::DialogResult(DialogMessage::Cancel)),
+                    }));
+                }
+            },
             Message::Viewer(viewer_msg) => {
                 return self.handle_viewer(viewer_msg);
             }
@@ -259,21 +257,19 @@ impl App {
             Message::EditFile => {
                 return self.open_editor();
             }
-            Message::FileLoadedForEdit(name, path, result) => {
-                match result {
-                    Ok(content) => {
-                        let text = String::from_utf8_lossy(&content).to_string();
-                        self.editor = Some(EditorState::new(name, path, text));
-                    }
-                    Err(err) => {
-                        self.dialog = Some(DialogKind::Confirm(ConfirmDialog {
-                            title: "Error".into(),
-                            message: format!("Cannot open file: {err}"),
-                            on_confirm: Box::new(Message::DialogResult(DialogMessage::Cancel)),
-                        }));
-                    }
+            Message::FileLoadedForEdit(name, path, result) => match result {
+                Ok(content) => {
+                    let text = String::from_utf8_lossy(&content).to_string();
+                    self.editor = Some(EditorState::new(name, path, text));
                 }
-            }
+                Err(err) => {
+                    self.dialog = Some(DialogKind::Confirm(ConfirmDialog {
+                        title: "Error".into(),
+                        message: format!("Cannot open file: {err}"),
+                        on_confirm: Box::new(Message::DialogResult(DialogMessage::Cancel)),
+                    }));
+                }
+            },
             Message::Editor(editor_msg) => {
                 return self.handle_editor(editor_msg);
             }
@@ -583,9 +579,7 @@ impl App {
                         let path = self.active_panel_state().current_path.join(&value);
                         let vfs = self.vfs.clone();
                         return Task::perform(
-                            async move {
-                                vfs.create_dir(&path).await.map_err(|e| e.to_string())
-                            },
+                            async move { vfs.create_dir(&path).await.map_err(|e| e.to_string()) },
                             Message::OperationComplete,
                         );
                     } else if title == "Rename" {
@@ -595,9 +589,7 @@ impl App {
                             let to = panel.current_path.join(&value);
                             let vfs = self.vfs.clone();
                             return Task::perform(
-                                async move {
-                                    vfs.rename(&from, &to).await.map_err(|e| e.to_string())
-                                },
+                                async move { vfs.rename(&from, &to).await.map_err(|e| e.to_string()) },
                                 Message::OperationComplete,
                             );
                         }
@@ -744,7 +736,9 @@ impl App {
                             .map_err(|e| e.to_string())?;
                         Ok(buf)
                     },
-                    move |result| Message::FileLoadedForEdit(name.clone(), file_path.clone(), result),
+                    move |result| {
+                        Message::FileLoadedForEdit(name.clone(), file_path.clone(), result)
+                    },
                 );
             }
         }
@@ -772,8 +766,7 @@ impl App {
                 let vfs = self.vfs.clone();
                 return Task::perform(
                     async move {
-                        let mut writer =
-                            vfs.open_write(&path).await.map_err(|e| e.to_string())?;
+                        let mut writer = vfs.open_write(&path).await.map_err(|e| e.to_string())?;
                         writer
                             .write_all(text.as_bytes())
                             .await
@@ -903,10 +896,7 @@ impl App {
         match msg {
             BookmarkMessage::Add => {
                 let path = self.active_panel_state().current_path.clone();
-                let name = path
-                    .file_name()
-                    .unwrap_or("bookmark")
-                    .to_string();
+                let name = path.file_name().unwrap_or("bookmark").to_string();
                 self.bookmarks.add(Bookmark::from_vfs_path(name, &path));
                 save_bookmarks(&self.bookmarks.bookmarks);
             }

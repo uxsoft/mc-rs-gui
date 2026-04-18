@@ -8,8 +8,8 @@ mod operations;
 mod panel;
 mod search;
 mod util;
-mod viewer;
 mod vfs;
+mod viewer;
 
 use app::App;
 

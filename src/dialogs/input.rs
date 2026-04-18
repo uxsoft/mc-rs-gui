@@ -1,9 +1,9 @@
-use iced::widget::{column, row, text, text_input, Space};
+use iced::widget::{Space, column, row, text, text_input};
 use iced::{Color, Element, Font, Length};
 
 use crate::app::Message;
 
-use super::{dialog_button, DialogMessage};
+use super::{DialogMessage, dialog_button};
 
 #[derive(Debug, Clone)]
 pub struct InputDialog {
@@ -31,9 +31,17 @@ pub fn input_view<'a>(dialog: &'a InputDialog) -> Element<'a, Message> {
         .font(Font::MONOSPACE);
 
     let buttons = row![
-        dialog_button("OK", Message::DialogResult(DialogMessage::InputSubmit), true),
+        dialog_button(
+            "OK",
+            Message::DialogResult(DialogMessage::InputSubmit),
+            true
+        ),
         Space::with_width(8),
-        dialog_button("Cancel", Message::DialogResult(DialogMessage::Cancel), false),
+        dialog_button(
+            "Cancel",
+            Message::DialogResult(DialogMessage::Cancel),
+            false
+        ),
     ];
 
     column![

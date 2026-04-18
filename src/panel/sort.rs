@@ -29,10 +29,6 @@ pub fn sort_entries(entries: &mut Vec<VfsEntry>, mode: SortMode, ascending: bool
             SortMode::Modified => a.modified.cmp(&b.modified),
         };
 
-        if ascending {
-            ord
-        } else {
-            ord.reverse()
-        }
+        if ascending { ord } else { ord.reverse() }
     });
 }
