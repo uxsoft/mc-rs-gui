@@ -1,7 +1,10 @@
+pub mod menu_bar;
+
 use iced::widget::{Space, button, container, row, text};
 use iced::{Color, Element, Font, Length, Padding};
 
 use crate::app::Message;
+use crate::menu::menu_bar::MenuId;
 
 struct FnKeyDef {
     key: &'static str,
@@ -54,7 +57,7 @@ pub fn fn_key_bar<'a>() -> Element<'a, Message> {
         FnKeyDef {
             key: "9",
             label: "Menu",
-            message: None,
+            message: Some(Message::MenuOpen(MenuId::Left)),
         },
         FnKeyDef {
             key: "10",

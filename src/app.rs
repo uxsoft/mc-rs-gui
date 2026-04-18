@@ -16,6 +16,7 @@ use crate::dialogs::progress::ProgressDialog;
 use crate::dialogs::{self, DialogKind, DialogMessage};
 use crate::editor::{self, EditorMessage, EditorState};
 use crate::menu;
+use crate::menu::menu_bar::{MenuBarState, MenuId};
 use crate::operations::executor::execute_operation;
 use crate::operations::{OperationKind, OperationProgress};
 use crate::panel::{self, PanelMessage, PanelState};
@@ -80,6 +81,17 @@ pub enum Message {
     // App
     ToggleHidden,
     Quit,
+
+    // Menu bar
+    MenuOpen(MenuId),
+    MenuClose,
+    MenuAction(Box<Message>),
+
+    // New trivial actions
+    SwapPanels,
+    ToggleConfirmDelete,
+    ToggleConfirmOverwrite,
+    SaveConfig,
 }
 
 pub struct App {
@@ -94,6 +106,7 @@ pub struct App {
     pub search: Option<SearchState>,
     pub bookmarks: BookmarkStore,
     pub config: AppConfig,
+    pub menu_bar: MenuBarState,
 }
 
 impl App {
@@ -123,6 +136,7 @@ impl App {
             search: None,
             bookmarks: bookmark_store,
             config,
+            menu_bar: MenuBarState::default(),
         };
 
         let vfs_l = vfs.clone();
@@ -192,6 +206,29 @@ impl App {
                         return Task::none();
                     }
                     return Task::none();
+                }
+                // Menu bar keyboard navigation
+                if self.menu_bar.open_menu.is_some() {
+                    match key {
+                        keyboard::Key::Named(keyboard::key::Named::Escape) => {
+                            self.menu_bar.open_menu = None;
+                            return Task::none();
+                        }
+                        keyboard::Key::Named(keyboard::key::Named::ArrowLeft) => {
+                            self.menu_bar.open_menu =
+                                Some(self.menu_bar.open_menu.unwrap().prev());
+                            return Task::none();
+                        }
+                        keyboard::Key::Named(keyboard::key::Named::ArrowRight) => {
+                            self.menu_bar.open_menu =
+                                Some(self.menu_bar.open_menu.unwrap().next());
+                            return Task::none();
+                        }
+                        _ => {
+                            self.menu_bar.open_menu = None;
+                            return self.handle_key(key, modifiers);
+                        }
+                    }
                 }
                 return self.handle_key(key, modifiers);
             }
@@ -310,6 +347,40 @@ impl App {
             Message::Quit => {
                 return iced::exit();
             }
+
+            // Menu bar
+            Message::MenuOpen(id) => {
+                if self.menu_bar.open_menu == Some(id) {
+                    self.menu_bar.open_menu = None;
+                } else {
+                    self.menu_bar.open_menu = Some(id);
+                }
+            }
+            Message::MenuClose => {
+                self.menu_bar.open_menu = None;
+            }
+            Message::MenuAction(inner) => {
+                self.menu_bar.open_menu = None;
+                return self.update(*inner);
+            }
+
+            // Trivial new actions
+            Message::SwapPanels => {
+                std::mem::swap(&mut self.left_panel, &mut self.right_panel);
+                self.active_panel = match self.active_panel {
+                    PanelSide::Left => PanelSide::Right,
+                    PanelSide::Right => PanelSide::Left,
+                };
+            }
+            Message::ToggleConfirmDelete => {
+                self.config.confirm_delete = !self.config.confirm_delete;
+            }
+            Message::ToggleConfirmOverwrite => {
+                self.config.confirm_overwrite = !self.config.confirm_overwrite;
+            }
+            Message::SaveConfig => {
+                self.config.save();
+            }
         }
         Task::none()
     }
@@ -325,6 +396,7 @@ impl App {
             return editor::editor_view(editor);
         }
 
+        let top_menu = menu::menu_bar::menu_bar_view(&self.menu_bar);
         let left = panel::panel_view(
             &self.left_panel,
             PanelSide::Left,
@@ -338,7 +410,7 @@ impl App {
 
         let panels = row![left, right].spacing(2).height(Length::Fill);
         let fn_bar = menu::fn_key_bar();
-        let main_content = column![panels, fn_bar];
+        let main_content = column![top_menu, panels, fn_bar];
 
         let base: Element<'_, Message> = container(main_content)
             .width(Length::Fill)
@@ -348,6 +420,12 @@ impl App {
                 ..Default::default()
             })
             .into();
+
+        // Menu dropdown overlay (highest priority)
+        if let Some(dropdown) = menu::menu_bar::menu_dropdown_overlay(&self.menu_bar, &self.config)
+        {
+            return stack![base, dropdown].into();
+        }
 
         // Overlay search dialog
         if let Some(ref search_state) = self.search {
@@ -1067,6 +1145,9 @@ impl App {
                 }
                 keyboard::key::Named::F7 => return self.update(Message::Mkdir),
                 keyboard::key::Named::F8 => return self.update(Message::DeleteSelected),
+                keyboard::key::Named::F9 => {
+                    return self.update(Message::MenuOpen(MenuId::Left));
+                }
                 keyboard::key::Named::F10 => return self.update(Message::Quit),
                 _ => {}
             },
