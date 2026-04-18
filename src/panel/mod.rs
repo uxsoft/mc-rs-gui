@@ -3,7 +3,7 @@ pub mod sort;
 use std::collections::BTreeSet;
 
 use iced::widget::{
-    Column, Space, button, column, container, horizontal_rule, row, scrollable, text,
+    Column, button, column, container, horizontal_rule, row, scrollable, text,
 };
 use iced::{Color, Element, Font, Length, Padding};
 
@@ -65,6 +65,25 @@ impl PanelState {
 
     pub fn set_entries(&mut self, mut entries: Vec<VfsEntry>) {
         sort::sort_entries(&mut entries, self.sort_mode, self.sort_ascending);
+
+        // Insert ".." entry at the top if the current path has a parent
+        if let Some(parent) = self.current_path.parent() {
+            entries.insert(
+                0,
+                VfsEntry {
+                    name: "..".to_string(),
+                    path: parent,
+                    entry_type: EntryType::Directory,
+                    size: 0,
+                    modified: None,
+                    permissions: None,
+                    owner: None,
+                    group: None,
+                    link_target: None,
+                },
+            );
+        }
+
         self.entries = entries;
         self.selected.clear();
         self.cursor = 0;
@@ -189,43 +208,7 @@ pub fn panel_view<'a>(
             .into(),
         ]
     } else {
-        // ".." entry to go up
-        let mut rows: Vec<Element<'a, Message>> = Vec::with_capacity(state.entries.len() + 1);
-
-        if state.current_path.parent().is_some() {
-            let up_bg = if state.cursor == 0 && state.entries.is_empty() {
-                Color::from_rgb(0.2, 0.25, 0.35)
-            } else {
-                Color::TRANSPARENT
-            };
-
-            let up_row = button(
-                row![
-                    text("/..")
-                        .size(13)
-                        .font(Font::with_name("Caskaydia Mono Nerd Font"))
-                        .color(Color::from_rgb(0.8, 0.8, 0.85))
-                        .width(Length::Fill),
-                    text("<DIR>")
-                        .size(13)
-                        .font(Font::with_name("Caskaydia Mono Nerd Font"))
-                        .color(Color::from_rgb(0.5, 0.5, 0.55))
-                        .width(Length::Fixed(80.0)),
-                    Space::with_width(Length::Fixed(140.0)),
-                ]
-                .spacing(4),
-            )
-            .padding(Padding::from([1, 8]))
-            .width(Length::Fill)
-            .style(move |_theme, _status| button::Style {
-                background: Some(iced::Background::Color(up_bg)),
-                text_color: Color::WHITE,
-                ..Default::default()
-            })
-            .on_press(Message::Panel(side, PanelMessage::GoUp));
-
-            rows.push(up_row.into());
-        }
+        let mut rows: Vec<Element<'a, Message>> = Vec::with_capacity(state.entries.len());
 
         for (i, entry) in state.entries.iter().enumerate() {
             let is_cursor = i == state.cursor;
