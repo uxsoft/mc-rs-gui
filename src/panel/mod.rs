@@ -305,6 +305,7 @@ pub fn panel_view<'a>(
 
         table(theme, &row_views, vec![name_col, size_col, mod_col])
             .row_height(22.0)
+            .height(Length::Fill)
             .striped(false)
             .row_style(move |i, _r| RowStyle {
                 background: Some(row_bg(
