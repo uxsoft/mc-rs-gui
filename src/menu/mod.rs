@@ -1,7 +1,9 @@
 pub mod menu_bar;
 
-use iced::widget::{Space, button, container, row, text};
-use iced::{Color, Element, Font, Length, Padding};
+use iced::widget::{Space, container, row};
+use iced::{Element, Length, Padding};
+use iced_longbridge::components::button::{Variant, button_ex};
+use iced_longbridge::theme::{AppTheme, Size};
 
 use crate::app::Message;
 use crate::menu::menu_bar::MenuId;
@@ -12,7 +14,8 @@ struct FnKeyDef {
     message: Option<Message>,
 }
 
-pub fn fn_key_bar<'a>() -> Element<'a, Message> {
+pub fn fn_key_bar<'a>(theme: &AppTheme) -> Element<'a, Message> {
+    let t = *theme;
     let keys = [
         FnKeyDef {
             key: "1",
@@ -67,65 +70,27 @@ pub fn fn_key_bar<'a>() -> Element<'a, Message> {
     ];
 
     let mut items: Vec<Element<'a, Message>> = Vec::new();
-
     for def in &keys {
-        let key_label = text(format!("F{}", def.key))
-            .size(12)
-            .font(Font::with_name("Caskaydia Mono Nerd Font"))
-            .color(Color::from_rgb(0.6, 0.6, 0.65));
-
-        let action_label = text(def.label)
-            .size(12)
-            .font(Font::with_name("Caskaydia Mono Nerd Font"))
-            .color(Color::from_rgb(0.85, 0.85, 0.9));
-
-        let content = row![key_label, action_label].spacing(2);
-
-        let btn = if let Some(ref msg) = def.message {
-            button(content)
-                .padding(Padding::from([2, 6]))
-                .style(|_theme, status| {
-                    let bg = match status {
-                        button::Status::Pressed => Color::from_rgb(0.22, 0.22, 0.32),
-                        button::Status::Hovered => Color::from_rgb(0.19, 0.19, 0.27),
-                        _ => Color::from_rgb(0.15, 0.15, 0.2),
-                    };
-                    button::Style {
-                        background: Some(iced::Background::Color(bg)),
-                        text_color: Color::WHITE,
-                        border: iced::Border {
-                            color: Color::from_rgb(0.25, 0.25, 0.3),
-                            width: 1.0,
-                            radius: 3.0.into(),
-                        },
-                        ..Default::default()
-                    }
-                })
-                .on_press(msg.clone())
-        } else {
-            button(content)
-                .padding(Padding::from([2, 6]))
-                .style(|_theme, _status| button::Style {
-                    background: Some(iced::Background::Color(Color::from_rgb(0.12, 0.12, 0.16))),
-                    text_color: Color::from_rgb(0.4, 0.4, 0.45),
-                    border: iced::Border {
-                        color: Color::from_rgb(0.2, 0.2, 0.25),
-                        width: 1.0,
-                        radius: 3.0.into(),
-                    },
-                    ..Default::default()
-                })
-        };
-
-        items.push(btn.into());
+        let label = format!("F{} {}", def.key, def.label);
+        let disabled = def.message.is_none();
+        let btn = button_ex(
+            theme,
+            label,
+            Variant::Ghost,
+            Size::Xs,
+            def.message.clone(),
+            false,
+            disabled,
+        );
+        items.push(btn);
         items.push(Space::new().width(Length::Fixed(2.0)).into());
     }
 
-    container(iced::widget::Row::with_children(items).align_y(iced::Alignment::Center))
+    container(row(items).align_y(iced::Alignment::Center))
         .width(Length::Fill)
         .padding(Padding::from([4, 4]))
-        .style(|_theme| container::Style {
-            background: Some(iced::Background::Color(Color::from_rgb(0.08, 0.08, 0.1))),
+        .style(move |_theme| container::Style {
+            background: Some(iced::Background::Color(t.background)),
             ..Default::default()
         })
         .into()

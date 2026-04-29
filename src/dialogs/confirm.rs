@@ -1,9 +1,11 @@
 use iced::widget::{Space, column, row, text};
-use iced::{Color, Element, Font};
+use iced::{Element, Length};
+use iced_longbridge::components::button::{Variant, button_ex};
+use iced_longbridge::theme::{AppTheme, Size};
 
 use crate::app::Message;
 
-use super::{DialogMessage, dialog_button};
+use super::DialogMessage;
 
 #[derive(Debug, Clone)]
 pub struct ConfirmDialog {
@@ -12,25 +14,32 @@ pub struct ConfirmDialog {
     pub on_confirm: Box<Message>,
 }
 
-pub fn confirm_view<'a>(dialog: &'a ConfirmDialog) -> Element<'a, Message> {
-    let title = text(&dialog.title)
-        .size(16)
-        .font(Font::with_name("Caskaydia Mono Nerd Font"))
-        .color(Color::from_rgb(0.9, 0.9, 0.95));
-
-    let msg = text(&dialog.message)
-        .size(13)
-        .font(Font::with_name("Caskaydia Mono Nerd Font"))
-        .color(Color::from_rgb(0.7, 0.7, 0.75));
+pub fn confirm_view<'a>(theme: &AppTheme, dialog: &'a ConfirmDialog) -> Element<'a, Message> {
+    let t = *theme;
+    let title = text(&dialog.title).size(16).color(t.foreground);
+    let msg = text(&dialog.message).size(13).color(t.muted_foreground);
 
     let buttons = row![
-        dialog_button(
+        Space::new().width(Length::Fill),
+        button_ex(
+            theme,
             "Yes",
-            Message::DialogResult(DialogMessage::Confirm(true)),
-            true
+            Variant::Primary,
+            Size::Sm,
+            Some(Message::DialogResult(DialogMessage::Confirm(true))),
+            false,
+            false,
         ),
         Space::new().width(8),
-        dialog_button("No", Message::DialogResult(DialogMessage::Cancel), false),
+        button_ex(
+            theme,
+            "No",
+            Variant::Secondary,
+            Size::Sm,
+            Some(Message::DialogResult(DialogMessage::Cancel)),
+            false,
+            false,
+        ),
     ];
 
     column![

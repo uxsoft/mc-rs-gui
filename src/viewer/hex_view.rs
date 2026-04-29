@@ -1,11 +1,13 @@
 use iced::widget::{Column, container, scrollable, text};
-use iced::{Color, Element, Font, Length, Padding};
+use iced::{Element, Font, Length, Padding};
+use iced_longbridge::theme::AppTheme;
 
 use crate::app::Message;
 
 use super::ViewerState;
 
-pub fn hex_content_view<'a>(state: &'a ViewerState) -> Element<'a, Message> {
+pub fn hex_content_view<'a>(theme: &AppTheme, state: &'a ViewerState) -> Element<'a, Message> {
+    let t = *theme;
     let bytes_per_line = 16;
     let start = state.offset * bytes_per_line;
     let end = (start + state.lines_per_page * bytes_per_line).min(state.content.len());
@@ -52,7 +54,7 @@ pub fn hex_content_view<'a>(state: &'a ViewerState) -> Element<'a, Message> {
             text(line)
                 .size(13)
                 .font(Font::with_name("Caskaydia Mono Nerd Font"))
-                .color(Color::from_rgb(0.75, 0.8, 0.85))
+                .color(t.foreground)
                 .into(),
         );
 

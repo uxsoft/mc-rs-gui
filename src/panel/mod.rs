@@ -1,9 +1,15 @@
 pub mod sort;
 
+use std::borrow::Cow;
 use std::collections::{BTreeSet, HashSet};
 
-use iced::widget::{Column, button, column, container, row, rule, scrollable, text};
+use iced::alignment::Horizontal;
+use iced::widget::{column, container, text};
 use iced::{Color, Element, Font, Length, Padding};
+use iced_longbridge::components::table::{
+    Column, ResizeEvent, ResizeState, RowStyle, SortDir, table,
+};
+use iced_longbridge::theme::AppTheme;
 
 use crate::app::{Message, PanelSide};
 use crate::util::human_size::format_size;
@@ -25,6 +31,7 @@ pub enum PanelMessage {
     CursorHome,
     CursorEnd,
     Sort(SortMode),
+    Resize(ResizeEvent),
     Refresh,
     PathBarClicked,
     PathInputChanged(String),
@@ -45,6 +52,7 @@ pub struct PanelState {
     pub path_input_value: String,
     pub filter: String,
     pub highlighted: HashSet<usize>,
+    pub column_widths: ResizeState,
 }
 
 impl PanelState {
@@ -62,6 +70,7 @@ impl PanelState {
             path_input_value: String::new(),
             filter: String::new(),
             highlighted: HashSet::new(),
+            column_widths: ResizeState::new(vec![300.0, 80.0]).min_width(40.0),
         }
     }
 
@@ -153,148 +162,165 @@ impl PanelState {
     }
 }
 
+const ROW_FONT_SIZE: f32 = 12.0;
+const ROW_FONT: &str = "Caskaydia Mono Nerd Font";
+
+/// Per-row data passed to the table's column-render closures. Holds a borrow of
+/// the entry plus precomputed visual state so the closures stay cheap.
+struct RowView<'e> {
+    entry: &'e VfsEntry,
+    name_color: Color,
+}
+
+fn entry_color(t: &AppTheme, entry: &VfsEntry, is_selected: bool, is_highlighted: bool) -> Color {
+    if is_highlighted {
+        return Color::from_rgb(1.0, 0.8, 0.3);
+    }
+    match entry.entry_type {
+        EntryType::Directory => Color::from_rgb(0.4, 0.7, 1.0),
+        EntryType::Symlink => Color::from_rgb(0.5, 0.9, 0.7),
+        EntryType::Special => Color::from_rgb(0.9, 0.6, 0.3),
+        EntryType::File => {
+            if is_selected {
+                Color::from_rgb(1.0, 0.9, 0.3)
+            } else {
+                t.foreground
+            }
+        }
+    }
+}
+
+/// Returns the row's background color based on its state. Distinct from the
+/// header's `t.muted` so selected rows don't blend into the header.
+fn row_bg(is_cursor: bool, is_selected: bool, is_active: bool) -> Color {
+    if is_cursor && is_active {
+        // Saturated blue for the focused/cursor row in the active panel.
+        Color::from_rgb(0.20, 0.35, 0.65)
+    } else if is_cursor {
+        // Subtler blue when cursor is on the inactive panel.
+        Color::from_rgba(0.20, 0.35, 0.65, 0.35)
+    } else if is_selected {
+        // Distinct translucent blue for multi-select; clearly different
+        // from `t.muted` (used by the header) so the two don't blend.
+        Color::from_rgba(0.30, 0.50, 0.85, 0.22)
+    } else {
+        Color::TRANSPARENT
+    }
+}
+
 pub fn panel_view<'a>(
+    theme: &AppTheme,
     state: &'a PanelState,
     side: PanelSide,
     is_active: bool,
 ) -> Element<'a, Message> {
-    let border_color = if is_active {
-        Color::from_rgb(0.3, 0.5, 0.9)
-    } else {
-        Color::from_rgb(0.3, 0.3, 0.35)
-    };
+    let t = *theme;
+    let border_color = if is_active { t.ring } else { t.border };
 
     // Path header
     let path_bar = path_input_view(
+        theme,
         &state.current_path.to_string(),
         state.path_editing,
         &state.path_input_value,
         side,
     );
 
-    // Column headers
-    let header_row = row![
-        text("Name")
-            .size(12)
-            .font(Font::with_name("Caskaydia Mono Nerd Font"))
-            .color(Color::from_rgb(0.6, 0.6, 0.65))
-            .width(Length::Fill),
-        text("Size")
-            .size(12)
-            .font(Font::with_name("Caskaydia Mono Nerd Font"))
-            .color(Color::from_rgb(0.6, 0.6, 0.65))
-            .width(Length::Fixed(80.0)),
-        text("Modified")
-            .size(12)
-            .font(Font::with_name("Caskaydia Mono Nerd Font"))
-            .color(Color::from_rgb(0.6, 0.6, 0.65))
-            .width(Length::Fixed(140.0)),
-    ]
-    .spacing(4)
-    .padding(Padding::from([2, 8]));
-
-    // File list
-    let file_rows: Vec<Element<'a, Message>> = if state.loading {
-        vec![
-            container(
-                text("Loading...")
-                    .size(13)
-                    .color(Color::from_rgb(0.5, 0.5, 0.55)),
-            )
+    // Body: a placeholder for loading / error, otherwise the longbridge table.
+    let body: Element<'a, Message> = if state.loading {
+        container(text("Loading...").size(13).color(t.muted_foreground))
             .padding(8)
-            .into(),
-        ]
-    } else if let Some(ref err) = state.error {
-        vec![
-            container(
-                text(format!("Error: {err}"))
-                    .size(13)
-                    .color(Color::from_rgb(0.9, 0.3, 0.3)),
-            )
-            .padding(8)
-            .into(),
-        ]
-    } else {
-        let mut rows: Vec<Element<'a, Message>> = Vec::with_capacity(state.entries.len());
-
-        for (i, entry) in state.entries.iter().enumerate() {
-            let is_cursor = i == state.cursor;
-            let is_selected = state.selected.contains(&i);
-            let is_highlighted = state.highlighted.contains(&i);
-
-            let name_color = if is_highlighted {
-                Color::from_rgb(1.0, 0.8, 0.3)
-            } else {
-                match entry.entry_type {
-                    EntryType::Directory => Color::from_rgb(0.4, 0.7, 1.0),
-                    EntryType::Symlink => Color::from_rgb(0.5, 0.9, 0.7),
-                    EntryType::Special => Color::from_rgb(0.9, 0.6, 0.3),
-                    EntryType::File => {
-                        if is_selected {
-                            Color::from_rgb(1.0, 0.9, 0.3)
-                        } else {
-                            Color::from_rgb(0.85, 0.85, 0.9)
-                        }
-                    }
-                }
-            };
-
-            let bg_color = if is_cursor && is_active {
-                Color::from_rgb(0.2, 0.25, 0.4)
-            } else if is_selected {
-                Color::from_rgb(0.18, 0.2, 0.3)
-            } else {
-                Color::TRANSPARENT
-            };
-
-            let size_text = if entry.is_dir() {
-                "<DIR>".to_string()
-            } else {
-                format_size(entry.size)
-            };
-
-            let modified_text = format_time(entry.modified);
-
-            let entry_row = button(
-                row![
-                    text(&entry.name)
-                        .size(13)
-                        .font(Font::with_name("Caskaydia Mono Nerd Font"))
-                        .color(name_color)
-                        .width(Length::Fill),
-                    text(size_text)
-                        .size(13)
-                        .font(Font::with_name("Caskaydia Mono Nerd Font"))
-                        .color(Color::from_rgb(0.6, 0.6, 0.65))
-                        .width(Length::Fixed(80.0)),
-                    text(modified_text)
-                        .size(13)
-                        .font(Font::with_name("Caskaydia Mono Nerd Font"))
-                        .color(Color::from_rgb(0.5, 0.5, 0.55))
-                        .width(Length::Fixed(140.0)),
-                ]
-                .spacing(4),
-            )
-            .padding(Padding::from([1, 8]))
             .width(Length::Fill)
-            .style(move |_theme, _status| button::Style {
-                background: Some(iced::Background::Color(bg_color)),
-                text_color: Color::WHITE,
-                border: iced::Border::default(),
-                shadow: iced::Shadow::default(),
-                ..Default::default()
+            .height(Length::Fill)
+            .into()
+    } else if let Some(ref err) = state.error {
+        container(text(format!("Error: {err}")).size(13).color(t.danger))
+            .padding(8)
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
+    } else {
+        // Precompute per-row name color so cell closures stay cheap.
+        let row_views: Vec<RowView<'a>> = state
+            .entries
+            .iter()
+            .enumerate()
+            .map(|(i, entry)| {
+                let is_selected = state.selected.contains(&i);
+                let is_highlighted = state.highlighted.contains(&i);
+                RowView {
+                    entry,
+                    name_color: entry_color(&t, entry, is_selected, is_highlighted),
+                }
             })
-            .on_press(Message::Panel(side, PanelMessage::Select(i)));
+            .collect();
 
-            rows.push(entry_row.into());
-        }
+        let name_col = Column::new("Name", |r: &RowView<'a>| {
+            text(&r.entry.name)
+                .size(ROW_FONT_SIZE)
+                .font(Font::with_name(ROW_FONT))
+                .color(r.name_color)
+                .into()
+        })
+        .width(state.column_widths.width(0))
+        .sortable("name");
 
-        rows
-    };
+        let size_col = Column::new("Size", move |r: &RowView<'a>| {
+            let s: Cow<'static, str> = if r.entry.is_dir() {
+                Cow::Borrowed("<DIR>")
+            } else {
+                Cow::Owned(format_size(r.entry.size))
+            };
+            text(s)
+                .size(ROW_FONT_SIZE)
+                .font(Font::with_name(ROW_FONT))
+                .color(t.muted_foreground)
+                .into()
+        })
+        .width(state.column_widths.width(1))
+        .align(Horizontal::Right)
+        .sortable("size");
 
-    let file_list = scrollable(Column::with_children(file_rows).width(Length::Fill))
+        let mod_col = Column::new("Modified", move |r: &RowView<'a>| {
+            text(format_time(r.entry.modified))
+                .size(ROW_FONT_SIZE)
+                .font(Font::with_name(ROW_FONT))
+                .color(t.muted_foreground)
+                .into()
+        })
         .width(Length::Fill)
-        .height(Length::Fill);
+        .sortable("modified");
+
+        let sort_dir = if state.sort_ascending {
+            SortDir::Asc
+        } else {
+            SortDir::Desc
+        };
+        let sort_state = state.sort_mode.as_key().map(|k| (k, sort_dir));
+
+        let on_sort = move |key: &'static str| {
+            let mode = SortMode::from_key(key).unwrap_or(SortMode::Name);
+            Message::Panel(side, PanelMessage::Sort(mode))
+        };
+
+        table(theme, &row_views, vec![name_col, size_col, mod_col])
+            .row_height(22.0)
+            .striped(false)
+            .row_style(move |i, _r| RowStyle {
+                background: Some(row_bg(
+                    i == state.cursor,
+                    state.selected.contains(&i),
+                    is_active,
+                )),
+                text_color: None,
+            })
+            .on_row_press(move |i| Message::Panel(side, PanelMessage::Select(i)))
+            .sort(sort_state, on_sort)
+            .resize(&state.column_widths, move |ev| {
+                Message::Panel(side, PanelMessage::Resize(ev))
+            })
+            .into()
+    };
 
     // Status bar
     let total_size: u64 = state
@@ -320,25 +346,20 @@ pub fn panel_view<'a>(
         text(status_text)
             .size(12)
             .font(Font::with_name("Caskaydia Mono Nerd Font"))
-            .color(Color::from_rgb(0.5, 0.5, 0.55)),
+            .color(t.muted_foreground),
     )
     .width(Length::Fill)
     .padding(Padding::from([2, 8]));
 
-    // Assemble panel
-    let panel_content = column![
-        path_bar,
-        rule::horizontal(1),
-        header_row,
-        file_list,
-        status_bar,
-    ];
+    // Assemble panel — the table draws its own header divider and outer border.
+    let panel_content = column![path_bar, body, status_bar];
 
+    let panel_bg = t.card;
     container(panel_content)
         .width(Length::Fill)
         .height(Length::Fill)
         .style(move |_theme| container::Style {
-            background: Some(iced::Background::Color(Color::from_rgb(0.1, 0.1, 0.13))),
+            background: Some(iced::Background::Color(panel_bg)),
             border: iced::Border {
                 color: border_color,
                 width: 1.0,

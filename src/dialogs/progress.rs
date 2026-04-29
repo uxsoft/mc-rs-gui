@@ -1,5 +1,7 @@
-use iced::widget::{Space, column, progress_bar, text};
-use iced::{Color, Element, Font};
+use iced::widget::{Space, column, text};
+use iced::Element;
+use iced_longbridge::components::progress::progress;
+use iced_longbridge::theme::AppTheme;
 
 use crate::app::Message;
 use crate::util::human_size::format_size;
@@ -15,27 +17,21 @@ pub struct ProgressDialog {
 }
 
 impl ProgressDialog {
-    pub fn fraction(&self) -> f32 {
+    pub fn percent(&self) -> f32 {
         if self.total_bytes == 0 {
             0.0
         } else {
-            self.transferred_bytes as f32 / self.total_bytes as f32
+            (self.transferred_bytes as f32 / self.total_bytes as f32) * 100.0
         }
     }
 }
 
-pub fn progress_view<'a>(dialog: &'a ProgressDialog) -> Element<'a, Message> {
-    let title = text(&dialog.title)
-        .size(16)
-        .font(Font::with_name("Caskaydia Mono Nerd Font"))
-        .color(Color::from_rgb(0.9, 0.9, 0.95));
+pub fn progress_view<'a>(theme: &AppTheme, dialog: &'a ProgressDialog) -> Element<'a, Message> {
+    let t = *theme;
+    let title = text(&dialog.title).size(16).color(t.foreground);
+    let file_text = text(&dialog.current_file).size(12).color(t.muted_foreground);
 
-    let file_text = text(&dialog.current_file)
-        .size(12)
-        .font(Font::with_name("Caskaydia Mono Nerd Font"))
-        .color(Color::from_rgb(0.6, 0.6, 0.65));
-
-    let bar = progress_bar(0.0..=1.0, dialog.fraction()).girth(8);
+    let bar = progress(theme, dialog.percent());
 
     let stats = text(format!(
         "{} / {} ({}/{})",
@@ -45,8 +41,7 @@ pub fn progress_view<'a>(dialog: &'a ProgressDialog) -> Element<'a, Message> {
         dialog.files_total,
     ))
     .size(12)
-    .font(Font::with_name("Caskaydia Mono Nerd Font"))
-    .color(Color::from_rgb(0.6, 0.6, 0.65));
+    .color(t.muted_foreground);
 
     column![
         title,

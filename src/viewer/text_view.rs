@@ -1,11 +1,13 @@
 use iced::widget::{Column, container, scrollable, text};
-use iced::{Color, Element, Font, Length, Padding};
+use iced::{Element, Font, Length, Padding};
+use iced_longbridge::theme::AppTheme;
 
 use crate::app::Message;
 
 use super::ViewerState;
 
-pub fn text_content_view<'a>(state: &'a ViewerState) -> Element<'a, Message> {
+pub fn text_content_view<'a>(theme: &AppTheme, state: &'a ViewerState) -> Element<'a, Message> {
+    let t = *theme;
     let text_content = String::from_utf8_lossy(&state.content);
     let lines: Vec<&str> = text_content.lines().collect();
 
@@ -21,7 +23,7 @@ pub fn text_content_view<'a>(state: &'a ViewerState) -> Element<'a, Message> {
             text(line_text)
                 .size(13)
                 .font(Font::with_name("Caskaydia Mono Nerd Font"))
-                .color(Color::from_rgb(0.8, 0.8, 0.85))
+                .color(t.foreground)
                 .into(),
         );
     }

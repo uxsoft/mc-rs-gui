@@ -8,6 +8,29 @@ pub enum SortMode {
     Modified,
 }
 
+impl SortMode {
+    /// Stable string key used by widgets that identify columns by name (e.g. the
+    /// table component's `sortable("name")`). `Extension` has no column header,
+    /// so it has no key.
+    pub fn as_key(self) -> Option<&'static str> {
+        match self {
+            SortMode::Name => Some("name"),
+            SortMode::Size => Some("size"),
+            SortMode::Modified => Some("modified"),
+            SortMode::Extension => None,
+        }
+    }
+
+    pub fn from_key(key: &str) -> Option<Self> {
+        match key {
+            "name" => Some(SortMode::Name),
+            "size" => Some(SortMode::Size),
+            "modified" => Some(SortMode::Modified),
+            _ => None,
+        }
+    }
+}
+
 pub fn sort_entries(entries: &mut [VfsEntry], mode: SortMode, ascending: bool) {
     // Directories always first
     entries.sort_by(|a, b| {

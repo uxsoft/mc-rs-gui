@@ -1,5 +1,7 @@
-use iced::widget::{Space, button, column, container, row, text, text_editor};
+use iced::widget::{Space, column, container, row, text, text_editor};
 use iced::{Color, Element, Font, Length, Padding};
+use iced_longbridge::components::button::{Variant, button_ex};
+use iced_longbridge::theme::{AppTheme, Size};
 
 use crate::app::Message;
 
@@ -37,19 +39,18 @@ impl EditorState {
     }
 }
 
-pub fn editor_view<'a>(state: &'a EditorState) -> Element<'a, Message> {
+pub fn editor_view<'a>(theme: &AppTheme, state: &'a EditorState) -> Element<'a, Message> {
+    let t = *theme;
     // Header
     let dirty_marker = if state.dirty { " [modified]" } else { "" };
     let header = row![
         text(format!("{}{dirty_marker}", state.file_name))
             .size(14)
-            .font(Font::with_name("Caskaydia Mono Nerd Font"))
-            .color(Color::from_rgb(0.8, 0.85, 0.95)),
+            .color(t.foreground),
         Space::new().width(Length::Fill),
         if let Some(ref msg) = state.status_message {
             text(msg.clone())
                 .size(12)
-                .font(Font::with_name("Caskaydia Mono Nerd Font"))
                 .color(Color::from_rgb(0.5, 0.8, 0.5))
         } else {
             text(String::new()).size(12)
@@ -65,11 +66,35 @@ pub fn editor_view<'a>(state: &'a EditorState) -> Element<'a, Message> {
 
     // Footer
     let footer = row![
-        editor_button("F2 Save", Message::Editor(EditorMessage::Save)),
+        button_ex(
+            theme,
+            "F2 Save",
+            Variant::Ghost,
+            Size::Sm,
+            Some(Message::Editor(EditorMessage::Save)),
+            false,
+            false
+        ),
         Space::new().width(4),
-        editor_button("F7 Find", Message::Editor(EditorMessage::Find)),
+        button_ex(
+            theme,
+            "F7 Find",
+            Variant::Ghost,
+            Size::Sm,
+            Some(Message::Editor(EditorMessage::Find)),
+            false,
+            false
+        ),
         Space::new().width(4),
-        editor_button("F10 Quit", Message::Editor(EditorMessage::Close)),
+        button_ex(
+            theme,
+            "F10 Quit",
+            Variant::Ghost,
+            Size::Sm,
+            Some(Message::Editor(EditorMessage::Close)),
+            false,
+            false
+        ),
     ]
     .padding(Padding::from([4, 8]));
 
@@ -78,31 +103,9 @@ pub fn editor_view<'a>(state: &'a EditorState) -> Element<'a, Message> {
     container(content)
         .width(Length::Fill)
         .height(Length::Fill)
-        .style(|_theme| container::Style {
-            background: Some(iced::Background::Color(Color::from_rgb(0.08, 0.08, 0.1))),
+        .style(move |_theme| container::Style {
+            background: Some(iced::Background::Color(t.background)),
             ..Default::default()
         })
         .into()
-}
-
-fn editor_button<'a>(label: &str, msg: Message) -> Element<'a, Message> {
-    button(
-        text(label.to_string())
-            .size(12)
-            .font(Font::with_name("Caskaydia Mono Nerd Font"))
-            .color(Color::from_rgb(0.85, 0.85, 0.9)),
-    )
-    .padding(Padding::from([2, 8]))
-    .style(|_theme, _status| button::Style {
-        background: Some(iced::Background::Color(Color::from_rgb(0.15, 0.15, 0.2))),
-        text_color: Color::WHITE,
-        border: iced::Border {
-            color: Color::from_rgb(0.25, 0.25, 0.3),
-            width: 1.0,
-            radius: 3.0.into(),
-        },
-        ..Default::default()
-    })
-    .on_press(msg)
-    .into()
 }

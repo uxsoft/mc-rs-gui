@@ -1,7 +1,10 @@
 pub mod finder;
 
-use iced::widget::{Column, Space, button, column, container, row, scrollable, text, text_input};
-use iced::{Color, Element, Font, Length, Padding};
+use iced::widget::{Column, Space, button, column, container, row, scrollable, text};
+use iced::{Color, Element, Length};
+use iced_longbridge::components::button::{Variant, button_ex};
+use iced_longbridge::components::input::input;
+use iced_longbridge::theme::{AppTheme, Size};
 
 use crate::app::Message;
 use crate::vfs::VfsPath;
@@ -38,85 +41,79 @@ impl SearchState {
     }
 }
 
-pub fn search_view<'a>(state: &'a SearchState) -> Element<'a, Message> {
-    let title = text("File Search")
-        .size(16)
-        .font(Font::with_name("Caskaydia Mono Nerd Font"))
-        .color(Color::from_rgb(0.9, 0.9, 0.95));
+pub fn search_view<'a>(theme: &AppTheme, state: &'a SearchState) -> Element<'a, Message> {
+    let t = *theme;
+    let title = text("File Search").size(16).color(t.foreground);
 
     let dir_input = row![
         text("Directory:")
             .size(13)
-            .font(Font::with_name("Caskaydia Mono Nerd Font"))
-            .color(Color::from_rgb(0.7, 0.7, 0.75))
+            .color(t.muted_foreground)
             .width(Length::Fixed(100.0)),
-        text_input("", &state.directory)
-            .on_input(|s| Message::Search(SearchMessage::DirectoryChanged(s)))
-            .size(13)
-            .font(Font::with_name("Caskaydia Mono Nerd Font")),
+        input(theme, "", &state.directory)
+            .on_input(|s| Message::Search(SearchMessage::DirectoryChanged(s))),
     ]
     .spacing(8);
 
     let pattern_input = row![
         text("File name:")
             .size(13)
-            .font(Font::with_name("Caskaydia Mono Nerd Font"))
-            .color(Color::from_rgb(0.7, 0.7, 0.75))
+            .color(t.muted_foreground)
             .width(Length::Fixed(100.0)),
-        text_input("*", &state.pattern)
-            .on_input(|s| Message::Search(SearchMessage::PatternChanged(s)))
-            .size(13)
-            .font(Font::with_name("Caskaydia Mono Nerd Font")),
+        input(theme, "*", &state.pattern)
+            .on_input(|s| Message::Search(SearchMessage::PatternChanged(s))),
     ]
     .spacing(8);
 
     let content_input = row![
         text("Content:")
             .size(13)
-            .font(Font::with_name("Caskaydia Mono Nerd Font"))
-            .color(Color::from_rgb(0.7, 0.7, 0.75))
+            .color(t.muted_foreground)
             .width(Length::Fixed(100.0)),
-        text_input("", &state.content_pattern)
-            .on_input(|s| Message::Search(SearchMessage::ContentChanged(s)))
-            .size(13)
-            .font(Font::with_name("Caskaydia Mono Nerd Font")),
+        input(theme, "", &state.content_pattern)
+            .on_input(|s| Message::Search(SearchMessage::ContentChanged(s))),
     ]
     .spacing(8);
 
-    let search_button = button(
-        text(if state.searching {
+    let search_button = button_ex(
+        theme,
+        if state.searching {
             "Searching..."
         } else {
             "Search"
-        })
-        .size(14)
-        .font(Font::with_name("Caskaydia Mono Nerd Font")),
-    )
-    .padding(Padding::from([6, 16]))
-    .on_press_maybe(if state.searching {
-        None
-    } else {
-        Some(Message::Search(SearchMessage::Start))
-    });
+        },
+        Variant::Primary,
+        Size::Sm,
+        if state.searching {
+            None
+        } else {
+            Some(Message::Search(SearchMessage::Start))
+        },
+        state.searching,
+        false,
+    );
 
     // Results list
     let results: Vec<Element<'a, Message>> = state
         .results
         .iter()
         .map(|path| {
-            button(
-                text(path.to_string())
-                    .size(12)
-                    .font(Font::with_name("Caskaydia Mono Nerd Font"))
-                    .color(Color::from_rgb(0.7, 0.8, 0.95)),
-            )
-            .style(|_theme, _status| button::Style {
-                background: None,
-                text_color: Color::WHITE,
-                ..Default::default()
-            })
-            .on_press(Message::Search(SearchMessage::GoToResult(path.clone())))
-            .into()
+            button(text(path.to_string()).size(12).color(t.primary))
+                .style(move |_theme, status| {
+                    use button::Status::*;
+                    let bg = match status {
+                        Hovered => Some(iced::Background::Color(t.muted)),
+                        Pressed => Some(iced::Background::Color(t.accent)),
+                        _ => None,
+                    };
+                    button::Style {
+                        background: bg,
+                        text_color: t.primary,
+                        ..Default::default()
+                    }
+                })
+                .on_press(Message::Search(SearchMessage::GoToResult(path.clone())))
+                .into()
         })
         .collect();
 
@@ -125,17 +122,17 @@ pub fn search_view<'a>(state: &'a SearchState) -> Element<'a, Message> {
 
     let status = text(format!("{} results found", state.results.len()))
         .size(12)
-        .font(Font::with_name("Caskaydia Mono Nerd Font"))
-        .color(Color::from_rgb(0.5, 0.5, 0.55));
+        .color(t.muted_foreground);
 
-    let close_button = button(
-        text("Close")
-            .size(13)
-            .font(Font::with_name("Caskaydia Mono Nerd Font"))
-            .color(Color::from_rgb(0.85, 0.85, 0.9)),
-    )
-    .padding(Padding::from([4, 12]))
-    .on_press(Message::Search(SearchMessage::Close));
+    let close_button = button_ex(
+        theme,
+        "Close",
+        Variant::Secondary,
+        Size::Sm,
+        Some(Message::Search(SearchMessage::Close)),
+        false,
+        false,
+    );
 
     let buttons = row![search_button, Space::new().width(8), close_button];
 
@@ -155,14 +152,16 @@ pub fn search_view<'a>(state: &'a SearchState) -> Element<'a, Message> {
         status,
     ];
 
+    let popover_bg = t.popover;
+    let border_color = t.border;
     container(
         container(dialog_content)
             .max_width(600)
             .padding(20)
-            .style(|_theme| container::Style {
-                background: Some(iced::Background::Color(Color::from_rgb(0.12, 0.12, 0.16))),
+            .style(move |_theme| container::Style {
+                background: Some(iced::Background::Color(popover_bg)),
                 border: iced::Border {
-                    color: Color::from_rgb(0.3, 0.4, 0.7),
+                    color: border_color,
                     width: 1.0,
                     radius: 8.0.into(),
                 },

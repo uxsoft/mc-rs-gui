@@ -1,9 +1,12 @@
-use iced::widget::{Space, column, row, text, text_input};
-use iced::{Color, Element, Font};
+use iced::widget::{Space, column, row, text};
+use iced::{Element, Length};
+use iced_longbridge::components::button::{Variant, button_ex};
+use iced_longbridge::components::input::input;
+use iced_longbridge::theme::{AppTheme, Size};
 
 use crate::app::Message;
 
-use super::{DialogMessage, dialog_button};
+use super::DialogMessage;
 
 pub const INPUT_DIALOG_ID: &str = "dialog-input";
 
@@ -15,35 +18,36 @@ pub struct InputDialog {
     pub on_submit: fn(String) -> Message,
 }
 
-pub fn input_view<'a>(dialog: &'a InputDialog) -> Element<'a, Message> {
-    let title = text(&dialog.title)
-        .size(16)
-        .font(Font::with_name("Caskaydia Mono Nerd Font"))
-        .color(Color::from_rgb(0.9, 0.9, 0.95));
+pub fn input_view<'a>(theme: &AppTheme, dialog: &'a InputDialog) -> Element<'a, Message> {
+    let t = *theme;
+    let title = text(&dialog.title).size(16).color(t.foreground);
+    let label = text(&dialog.label).size(13).color(t.muted_foreground);
 
-    let label = text(&dialog.label)
-        .size(13)
-        .font(Font::with_name("Caskaydia Mono Nerd Font"))
-        .color(Color::from_rgb(0.7, 0.7, 0.75));
-
-    let input = text_input("", &dialog.value)
+    let field = input(theme, "", &dialog.value)
         .id(INPUT_DIALOG_ID)
         .on_input(|s| Message::DialogResult(DialogMessage::InputChanged(s)))
-        .on_submit(Message::DialogResult(DialogMessage::InputSubmit))
-        .size(14)
-        .font(Font::with_name("Caskaydia Mono Nerd Font"));
+        .on_submit(Message::DialogResult(DialogMessage::InputSubmit));
 
     let buttons = row![
-        dialog_button(
+        Space::new().width(Length::Fill),
+        button_ex(
+            theme,
             "OK",
-            Message::DialogResult(DialogMessage::InputSubmit),
-            true
+            Variant::Primary,
+            Size::Sm,
+            Some(Message::DialogResult(DialogMessage::InputSubmit)),
+            false,
+            false,
         ),
         Space::new().width(8),
-        dialog_button(
+        button_ex(
+            theme,
             "Cancel",
-            Message::DialogResult(DialogMessage::Cancel),
-            false
+            Variant::Secondary,
+            Size::Sm,
+            Some(Message::DialogResult(DialogMessage::Cancel)),
+            false,
+            false,
         ),
     ];
 
@@ -52,7 +56,7 @@ pub fn input_view<'a>(dialog: &'a InputDialog) -> Element<'a, Message> {
         Space::new().height(8),
         label,
         Space::new().height(4),
-        input,
+        field,
         Space::new().height(16),
         buttons,
     ]

@@ -2,7 +2,8 @@ use std::sync::Arc;
 
 use iced::keyboard;
 use iced::widget::{column, container, operation, row, stack};
-use iced::{Color, Element, Length, Subscription, Task};
+use iced::{Element, Length, Subscription, Task};
+use iced_longbridge::theme::AppTheme;
 use tokio::io::AsyncReadExt;
 use tokio::io::AsyncWriteExt;
 use tokio::sync::mpsc;
@@ -114,6 +115,7 @@ pub struct App {
     pub config: AppConfig,
     pub menu_bar: MenuBarState,
     pub pending_filter_side: Option<PanelSide>,
+    pub theme: AppTheme,
 }
 
 impl App {
@@ -145,6 +147,7 @@ impl App {
             config,
             menu_bar: MenuBarState::default(),
             pending_filter_side: None,
+            theme: AppTheme::dark(),
         };
 
         let vfs_l = vfs.clone();
@@ -210,12 +213,29 @@ impl App {
                     }
                     return Task::none();
                 }
-                // Dialog close
+                // Dialog close / submit
                 if self.dialog.is_some() {
-                    if let keyboard::Key::Named(keyboard::key::Named::Escape) = key {
-                        self.dialog = None;
-                        self.pending_operation = None;
-                        return Task::none();
+                    match key {
+                        keyboard::Key::Named(keyboard::key::Named::Escape) => {
+                            self.dialog = None;
+                            self.pending_operation = None;
+                            return Task::none();
+                        }
+                        keyboard::Key::Named(keyboard::key::Named::Enter) => {
+                            let dialog_msg = match self.dialog.as_ref() {
+                                Some(DialogKind::Confirm(_)) => {
+                                    Some(DialogMessage::Confirm(true))
+                                }
+                                Some(DialogKind::Chmod(_)) => Some(DialogMessage::ChmodApply),
+                                Some(DialogKind::Input(_)) => Some(DialogMessage::InputSubmit),
+                                _ => None,
+                            };
+                            if let Some(m) = dialog_msg {
+                                return self.update(Message::DialogResult(m));
+                            }
+                            return Task::none();
+                        }
+                        _ => {}
                     }
                     return Task::none();
                 }
@@ -416,55 +436,64 @@ impl App {
     }
 
     pub fn view(&self) -> Element<'_, Message> {
+        let t = &self.theme;
         // Viewer takes over the whole screen
         if let Some(ref viewer) = self.viewer {
-            return viewer::viewer_view(viewer);
+            return viewer::viewer_view(t, viewer);
         }
 
         // Editor takes over the whole screen
         if let Some(ref editor) = self.editor {
-            return editor::editor_view(editor);
+            return editor::editor_view(t, editor);
         }
 
-        let top_menu = menu::menu_bar::menu_bar_view(&self.menu_bar);
+        let top_menu = menu::menu_bar::menu_bar_view(t, &self.menu_bar, &self.config);
         let left = panel::panel_view(
+            t,
             &self.left_panel,
             PanelSide::Left,
             self.active_panel == PanelSide::Left,
         );
         let right = panel::panel_view(
+            t,
             &self.right_panel,
             PanelSide::Right,
             self.active_panel == PanelSide::Right,
         );
 
-        let panels = row![left, right].spacing(2).height(Length::Fill);
-        let fn_bar = menu::fn_key_bar();
+        let panels: Element<'_, Message> = row![left, right]
+            .spacing(2)
+            .height(Length::Fill)
+            .into();
+        // While a menu is open, clicking the panels area dismisses the menu.
+        let panels = if self.menu_bar.open_menu.is_some() {
+            iced::widget::mouse_area(panels)
+                .on_press(Message::MenuClose)
+                .into()
+        } else {
+            panels
+        };
+        let fn_bar = menu::fn_key_bar(t);
         let main_content = column![top_menu, panels, fn_bar];
 
+        let bg = t.background;
         let base: Element<'_, Message> = container(main_content)
             .width(Length::Fill)
             .height(Length::Fill)
-            .style(|_theme| container::Style {
-                background: Some(iced::Background::Color(Color::from_rgb(0.06, 0.06, 0.08))),
+            .style(move |_theme| container::Style {
+                background: Some(iced::Background::Color(bg)),
                 ..Default::default()
             })
             .into();
 
-        // Menu dropdown overlay (highest priority)
-        if let Some(dropdown) = menu::menu_bar::menu_dropdown_overlay(&self.menu_bar, &self.config)
-        {
-            return stack![base, dropdown].into();
-        }
-
         // Overlay search dialog
         if let Some(ref search_state) = self.search {
-            return stack![base, search::search_view(search_state)].into();
+            return stack![base, search::search_view(t, search_state)].into();
         }
 
         // Overlay regular dialog
         if let Some(ref dialog) = self.dialog {
-            return stack![base, dialogs::dialog_overlay(dialog)].into();
+            return dialogs::dialog_overlay(t, base, dialog);
         }
 
         base
@@ -1212,6 +1241,9 @@ impl App {
                     panel.sort_ascending = true;
                 }
                 panel.resort();
+            }
+            PanelMessage::Resize(ev) => {
+                self.panel_mut(side).column_widths.apply(ev);
             }
             PanelMessage::Refresh => {
                 return self.refresh_panel(side);

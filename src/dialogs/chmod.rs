@@ -1,10 +1,14 @@
-use iced::widget::{Space, checkbox, column, row, text, text_input};
-use iced::{Color, Element, Font, Length};
+use iced::widget::{Space, column, row, text};
+use iced::{Element, Length};
+use iced_longbridge::components::button::{Variant, button_ex};
+use iced_longbridge::components::checkbox::checkbox_styled;
+use iced_longbridge::components::input::input;
+use iced_longbridge::theme::{AppTheme, Size};
 
 use crate::app::Message;
 use crate::vfs::VfsPath;
 
-use super::{DialogMessage, dialog_button};
+use super::DialogMessage;
 
 #[derive(Debug, Clone)]
 pub struct ChmodDialog {
@@ -51,16 +55,13 @@ fn mode_string(mode: u32) -> String {
     s
 }
 
-pub fn chmod_view<'a>(dialog: &'a ChmodDialog) -> Element<'a, Message> {
-    let title = text("Change Permissions")
-        .size(16)
-        .font(Font::with_name("Caskaydia Mono Nerd Font"))
-        .color(Color::from_rgb(0.9, 0.9, 0.95));
+pub fn chmod_view<'a>(theme: &AppTheme, dialog: &'a ChmodDialog) -> Element<'a, Message> {
+    let t = *theme;
+    let title = text("Change Permissions").size(16).color(t.foreground);
 
     let file_label = text(format!("File: {}", dialog.file_name))
         .size(13)
-        .font(Font::with_name("Caskaydia Mono Nerd Font"))
-        .color(Color::from_rgb(0.7, 0.7, 0.75));
+        .color(t.muted_foreground);
 
     let mode_display = text(format!(
         "{} ({:04o})",
@@ -68,22 +69,16 @@ pub fn chmod_view<'a>(dialog: &'a ChmodDialog) -> Element<'a, Message> {
         dialog.mode & 0o7777
     ))
     .size(14)
-    .font(Font::with_name("Caskaydia Mono Nerd Font"))
-    .color(Color::from_rgb(0.6, 0.8, 1.0));
+    .color(t.primary);
 
-    // Permission checkboxes in 3 rows of 3
     let mut perm_rows: Vec<Element<'a, Message>> = Vec::new();
     for chunk in BITS.chunks(3) {
         let mut row_items: Vec<Element<'a, Message>> = Vec::new();
         for &(bit, label) in chunk {
             let checked = dialog.mode & bit != 0;
             row_items.push(
-                checkbox(checked)
-                    .label(label)
+                checkbox_styled(theme, label, checked)
                     .on_toggle(move |_| Message::DialogResult(DialogMessage::ChmodToggleBit(bit)))
-                    .text_size(12)
-                    .size(16)
-                    .font(Font::with_name("Caskaydia Mono Nerd Font"))
                     .into(),
             );
             row_items.push(Space::new().width(Length::Fixed(12.0)).into());
@@ -95,31 +90,35 @@ pub fn chmod_view<'a>(dialog: &'a ChmodDialog) -> Element<'a, Message> {
         );
     }
 
-    let octal_label = text("Octal:")
-        .size(13)
-        .font(Font::with_name("Caskaydia Mono Nerd Font"))
-        .color(Color::from_rgb(0.7, 0.7, 0.75));
+    let octal_label = text("Octal:").size(13).color(t.muted_foreground);
 
-    let octal = text_input("0755", &dialog.octal_input)
+    let octal = input(theme, "0755", &dialog.octal_input)
         .on_input(|s| Message::DialogResult(DialogMessage::ChmodOctalChanged(s)))
-        .size(14)
-        .font(Font::with_name("Caskaydia Mono Nerd Font"))
         .width(Length::Fixed(80.0));
 
     let octal_row =
         row![octal_label, Space::new().width(8), octal].align_y(iced::Alignment::Center);
 
     let buttons = row![
-        dialog_button(
+        Space::new().width(Length::Fill),
+        button_ex(
+            theme,
             "Apply",
-            Message::DialogResult(DialogMessage::ChmodApply),
-            true
+            Variant::Primary,
+            Size::Sm,
+            Some(Message::DialogResult(DialogMessage::ChmodApply)),
+            false,
+            false,
         ),
         Space::new().width(8),
-        dialog_button(
+        button_ex(
+            theme,
             "Cancel",
-            Message::DialogResult(DialogMessage::Cancel),
-            false
+            Variant::Secondary,
+            Size::Sm,
+            Some(Message::DialogResult(DialogMessage::Cancel)),
+            false,
+            false,
         ),
     ];
 
